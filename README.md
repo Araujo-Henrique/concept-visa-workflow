@@ -45,11 +45,21 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 | Processos | `/processos-obt`, `/processos-ren`, `/processos-pass` (CRUD e filtros) |
 | Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
 | DS-160 | `/solicitantes/{id}/formularios-ds160`, `/formularios-ds160/{id}` |
+| Workflow | `POST /processos/{id}/situacao`, `GET /processos/{id}/eventos` |
 | Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`) |
 
 Regras: ao criar um processo, o titular (com o nome do cliente), os solicitantes extras e o evento "criado"
-são gravados numa transação só. A situação não muda pelo PATCH (rota própria com histórico na etapa 4).
+são gravados numa transação só. A situação não muda pelo PATCH: só pela rota de workflow, que grava a
+mudança e o evento juntos.
+
+### Workflow de situações
+- A situação precisa existir para o tipo do processo (ex.: `Pix` só em passaporte).
+- Toda mudança gera um evento (situação anterior, nova, motivo, quando).
+- Sair de `Concluido` exige motivo e gera o evento `reaberto`; voltar para `Processando` não é bloqueado
+  (negativa seguida de nova tentativa é um caso normal).
+- A linha do processo é travada durante a mudança (`SELECT ... FOR UPDATE`): duas mudanças simultâneas viram
+  uma fila e o histórico nunca registra uma "situação anterior" errada.
 
 ## Estado
-Etapas 1 a 3 concluídas: modelagem, SQLAlchemy + Alembic (migrations 0001 a 0003) e CRUD com o painel.
-Próxima: workflow de situações com eventos (etapa 4).
+Etapas 1 a 4 concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel e workflow com histórico.
+Próximas: teste de importação com dados anonimizados e autenticação (etapa 5).
