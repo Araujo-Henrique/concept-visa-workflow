@@ -6,7 +6,7 @@ from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app import db
-from app.routers import clientes, painel, processos, solicitantes
+from app.routers import clientes, painel, processos, solicitantes, workflow
 
 
 @asynccontextmanager
@@ -24,6 +24,7 @@ app.include_router(processos.router_obt)
 app.include_router(processos.router_ren)
 app.include_router(processos.router_pass)
 app.include_router(solicitantes.router)
+app.include_router(workflow.router)
 app.include_router(painel.router)
 
 
