@@ -36,5 +36,20 @@ esquema pelas migrations.
 pytest
 ```
 
+## API
+Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a documentação interativa fica em `/docs`.
+
+| Recurso | Rotas |
+|---|---|
+| Clientes | `/clientes` (CRUD, busca por nome, grupo, telefone) |
+| Processos | `/processos-obt`, `/processos-ren`, `/processos-pass` (CRUD e filtros) |
+| Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
+| DS-160 | `/solicitantes/{id}/formularios-ds160`, `/formularios-ds160/{id}` |
+| Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`) |
+
+Regras: ao criar um processo, o titular (com o nome do cliente), os solicitantes extras e o evento "criado"
+são gravados numa transação só. A situação não muda pelo PATCH (rota própria com histórico na etapa 4).
+
 ## Estado
-Etapa 2 concluída: modelos SQLAlchemy, migration base e testes do modelo. Próxima: CRUD (etapa 3).
+Etapas 1 a 3 concluídas: modelagem, SQLAlchemy + Alembic (migrations 0001 a 0003) e CRUD com o painel.
+Próxima: workflow de situações com eventos (etapa 4).
