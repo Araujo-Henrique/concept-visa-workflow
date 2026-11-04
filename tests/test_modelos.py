@@ -140,11 +140,15 @@ def test_consulado_pode_ficar_vazio_sem_data_marcada(sessao, cliente):
     assert processo.consulado is None
 
 
-def test_consulado_e_obrigatorio_quando_ha_data_marcada(sessao, cliente):
-    sessao.add(novo_obt(cliente, consulado=None, data_casv=date(2026, 12, 1)))
-    with pytest.raises(IntegrityError):
-        sessao.commit()
-    sessao.rollback()
+def test_banco_aceita_obt_com_data_e_sem_consulado_para_o_historico(sessao, cliente):
+    # histórico importado (consulado N/D): o banco aceita; a regra "com data, consulado" vale na API
+    processo = novo_obt(cliente, consulado=None, data_casv=date(2026, 12, 1))
+    sessao.add(processo)
+    sessao.commit()
+    assert processo.consulado is None
+
+
+def test_renovacao_exige_consulado_quando_ha_data_marcada(sessao, cliente):
     sessao.add(ProcessoREN(cliente_id=cliente.id, situacao="Cadastro", data_casv=date(2026, 12, 1)))
     with pytest.raises(IntegrityError):
         sessao.commit()
