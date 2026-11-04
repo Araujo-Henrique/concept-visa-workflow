@@ -29,13 +29,16 @@ def engine():
     if not (make_url(url).database or "").endswith("_test"):
         pytest.exit("TEST_DATABASE_URL precisa apontar para um banco cujo nome termina em _test", returncode=2)
 
+    engine = db.configurar(url)
+    # Começa do zero: recria o esquema (apaga tabelas, view e alembic_version) e sobe todas as migrations.
+    # Não usamos `downgrade base` porque ele falha de propósito se sobraram dados que o passo não desfaz.
+    with engine.begin() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
     config = Config("alembic.ini")
     # o configparser do Alembic usa % como sintaxe própria: o %40 da senha precisa virar %%40
     config.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
-    command.downgrade(config, "base")  # começa do zero para validar a migration inteira
     command.upgrade(config, "head")
-
-    engine = db.configurar(url)
     yield engine
     engine.dispose()
 
