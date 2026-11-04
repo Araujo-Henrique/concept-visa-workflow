@@ -26,8 +26,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_processo_ren_consulado_se_agendado", "processo_ren", type_="check")
+    # nome curto: a convenção de nomes do projeto acrescenta o prefixo ck_<tabela>_ sozinha
+    op.drop_constraint("consulado_se_agendado", "processo_ren", type_="check")
     op.alter_column("processo_ren", "consulado", existing_type=sa.String(length=3), nullable=False)
-    op.drop_constraint("ck_processo_obt_consulado_se_agendado", "processo_obt", type_="check")
+    op.drop_constraint("consulado_se_agendado", "processo_obt", type_="check")
     op.alter_column("processo_obt", "consulado", existing_type=sa.String(length=3), nullable=False)
     op.drop_column("processos", "observacao")
