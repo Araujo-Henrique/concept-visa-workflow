@@ -49,6 +49,15 @@ def sessao(engine):
 
 
 @pytest.fixture
+def client(sessao):
+    """Cliente HTTP da API, ligado ao banco de teste (a fixture `sessao` já limpou as tabelas).
+    Sem `with`, o lifespan não roda: a sessão continua ligada ao banco de teste, nunca ao DATABASE_URL."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    return TestClient(app)
+
+
+@pytest.fixture
 def cliente(sessao):
     c = Cliente(nome="Ana Souza", telefone="41999999999")
     sessao.add(c)
