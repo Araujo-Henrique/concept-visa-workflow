@@ -60,6 +60,24 @@ mudança e o evento juntos.
 - A linha do processo é travada durante a mudança (`SELECT ... FOR UPDATE`): duas mudanças simultâneas viram
   uma fila e o histórico nunca registra uma "situação anterior" errada.
 
+## Importação do banco do Projeto 1
+`app/importacao/projeto1.py` migra clientes e processos do Concept Client Registry para este esquema
+(o código não contém dados; as URLs vêm do `.env` de cada máquina).
+
+```
+# .env: SOURCE_DATABASE_URL (banco antigo, só leitura) e DATABASE_URL (banco novo, vazio, após alembic upgrade head)
+python -m scripts.importar_projeto1 --simular                       # ensaio: faz tudo e desfaz no final
+python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de verdade
+```
+
+- Roda numa transação só e imprime a conferência origem x destino (clientes, processos, solicitantes, formulários).
+  Se clientes ou processos não baterem, nada é gravado.
+- `n_solicitantes` vira N solicitantes (o titular leva o nome do cliente; os outros ganham o primeiro nome que
+  aparece nos códigos do DS-160). Os códigos viram formulários, `notas_ds160` vira a observação do processo e
+  o consulado `N/D` vira consulado vazio.
+- `--usuarios` é opcional: CSV local (`nome;email;perfil`, fora do Git) dos funcionários que viram usuários.
+- Recusa um banco de destino que já tenha dados e funciona com bancos antigos sem as colunas do DS-160.
+
 ## Estado
-Etapas 1 a 4 concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel e workflow com histórico.
-Próximas: teste de importação com dados anonimizados e autenticação (etapa 5).
+Etapas 1 a 4 concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico e
+importação do Projeto 1 (ensaiada com dados anonimizados). Próxima: autenticação (etapa 5).

@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 .idea/
 .vscode/
+
+# lista local de e-mails dos funcionarios reais (nao vai para o Git)
+usuarios*.csv
