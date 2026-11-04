@@ -120,9 +120,8 @@ class ProcessoOBT(Processo):
     __table_args__ = (
         *_fk_detalhe("OBT"),
         CheckConstraint("orientacao <> 'Agendada' OR orientacao_data IS NOT NULL", name="agendada_exige_data"),
-        # consulado pode ficar vazio até haver data marcada; com data, o consulado é obrigatório
-        CheckConstraint("(data_casv IS NULL AND data_entrevista IS NULL) OR consulado IS NOT NULL",
-                        name="consulado_se_agendado"),
+        # consulado pode ficar vazio. A regra "com data, o consulado é obrigatório" vale na API: o histórico
+        # importado tem processos com data marcada e consulado desconhecido (N/D), então o banco não a impõe.
     )
     __mapper_args__ = {"polymorphic_identity": "OBT"}
 
@@ -156,6 +155,8 @@ class ProcessoREN(Processo):
     # coluna gerada pelo próprio banco: despacho = CASV - 7 dias
     data_despacho: Mapped[date | None] = mapped_column(Date, Computed("data_casv - 7", persisted=True))
     docs: Mapped[DocsREN] = mapped_column(coluna_enum(DocsREN, "docs"), default=DocsREN.PENDENTE)
+    status_rascunho: Mapped[Rascunho] = mapped_column(
+        coluna_enum(Rascunho, "rascunho"), default=Rascunho.PENDENTE, server_default=Rascunho.PENDENTE.value)
     endereco: Mapped[str | None] = mapped_column(Text)
     codigo_rastreio: Mapped[str | None] = mapped_column(String(60))
 

@@ -90,6 +90,7 @@ class RENBase(BaseModel):
     consulado: Consulado | None = None
     data_casv: date | None = None
     docs: DocsREN = DocsREN.PENDENTE
+    status_rascunho: Rascunho = Rascunho.PENDENTE
     endereco: Texto | None = None
     codigo_rastreio: Texto | None = None
     observacao: Texto | None = None
