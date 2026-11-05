@@ -3,6 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from app import seguranca
 from app.deps import Sessao, UsuarioAtual, usuario_atual
 from app.schemas.auth import Login, Token, UsuarioOut
+from app.schemas.usuario import TrocaDeSenha
+from app.servicos.usuarios import trocar_propria_senha
+from app.servicos.workflow import ErroDeRegra
 from app.servicos.usuarios import achar_por_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
@@ -29,3 +32,14 @@ def login(dados: Login, sessao: Sessao):
 @router.get("/eu", response_model=UsuarioOut, dependencies=[Depends(usuario_atual)])
 def quem_sou_eu(usuario: UsuarioAtual):
     return UsuarioOut.de(usuario)
+
+
+@router.post("/senha", status_code=204)
+def trocar_senha(dados: TrocaDeSenha, sessao: Sessao, usuario: UsuarioAtual):
+    """Qualquer perfil troca a própria senha (precisa da senha atual). Não passa pela regra de método
+    porque está fora dos routers protegidos: aqui basta estar logado."""
+    try:
+        trocar_propria_senha(sessao, usuario, dados.senha_atual, dados.nova_senha)
+    except ErroDeRegra as erro:
+        raise HTTPException(status_code=erro.status, detail=erro.mensagem)
+    sessao.commit()
