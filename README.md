@@ -41,7 +41,8 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 
 | Recurso | Rotas |
 |---|---|
-| Autenticação | `POST /auth/login`, `GET /auth/eu` |
+| Autenticação | `POST /auth/login`, `GET /auth/eu`, `POST /auth/senha` (trocar a própria senha) |
+| Usuários (só admin) | `/usuarios` (listar, criar, mudar perfil e ativo), `/usuarios/{id}/senha`, `/usuarios/{id}/auditoria` |
 | Clientes | `/clientes` (CRUD, busca por nome, grupo, telefone) |
 | Processos | `/processos-obt`, `/processos-ren`, `/processos-pass` (CRUD e filtros) |
 | Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
@@ -80,6 +81,24 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
 - `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.
 - Processos e eventos registram quem os criou ou alterou.
 
+## Autorização por perfil
+O perfil define o que cada pessoa pode fazer, escolhido pelo método HTTP numa regra única (`app/main.py`),
+então uma rota nova já nasce protegida (há um teste que percorre todas as rotas para garantir isso).
+
+| Perfil | Pode |
+|---|---|
+| `leitor` | consultar (GET) |
+| `atendente` | consultar, criar e editar (POST, PATCH), incluindo mudar a situação de um processo |
+| `admin` | tudo: apagar (DELETE) e administrar usuários |
+
+- **401** = não está logado (sem token ou token inválido). **403** = está logado, mas o perfil não permite.
+- Perfil desconhecido não pode nada (nega por padrão).
+- Mudanças de perfil, `ativo`, nome e senha de um usuário ficam registradas (quem fez, o que mudou, quando),
+  sem nunca guardar a senha.
+- A empresa nunca fica sem um administrador ativo: a API recusa (409) rebaixar ou desativar o último.
+- "Entrar com Google" fica como melhoria futura: será uma segunda forma de entrar, ligada ao mesmo usuário
+  pelo e-mail, sem alterar o que existe.
+
 ## Importação do banco do Projeto 1
 `app/importacao/projeto1.py` migra clientes e processos do Concept Client Registry para este esquema
 (o código não contém dados; as URLs vêm do `.env` de cada máquina).
@@ -99,5 +118,6 @@ python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de v
 - Recusa um banco de destino que já tenha dados e funciona com bancos antigos sem as colunas do DS-160.
 
 ## Estado
-Etapas 1 a 4 e 5a concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
-importação do Projeto 1 e autenticação por senha + JWT. Próximas: "Entrar com Google" (5b) e autorização por perfil (6).
+Etapas 1 a 6 concluídas (MVP): modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
+importação do Projeto 1, autenticação por senha + JWT e autorização por perfil com administração de usuários.
+Próximas: testes em CI e seed fictício (etapas 7 e 8); "Entrar com Google" como melhoria posterior.
