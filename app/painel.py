@@ -14,4 +14,5 @@ painel = Table(
     Column("consulado", String), Column("data_casv", Date), Column("data_entrevista", Date),
     Column("data_despacho", Date), Column("data_pf", Date), Column("prazo_pf", Date),
     Column("codigo_rastreio", String), Column("atualizado_em", DateTime(timezone=True)),
+    Column("orientacao", String), Column("orientacao_data", Date), Column("orientacao_por", String),
 )

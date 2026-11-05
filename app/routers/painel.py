@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from app.deps import Sessao
 from app.enums import Consulado, TipoProcesso
 from app.painel import painel
-from app.schemas.painel import PainelOut
+from app.schemas.painel import PainelOut, painel_adapter
 
 router = APIRouter(prefix="/painel", tags=["Painel"])
 
@@ -26,4 +26,5 @@ def listar(sessao: Sessao, tipo: TipoProcesso | None = None, situacao: str | Non
         consulta = consulta.where(func.strpos(func.lower(painel.c.cliente), cliente.lower()) > 0)
     if resultado_geral:
         consulta = consulta.where(painel.c.resultado_geral == resultado_geral)
-    return [PainelOut(**linha._mapping) for linha in sessao.execute(consulta)]
+    # o discriminador `tipo` escolhe o schema de cada linha e descarta as colunas que não pertencem ao tipo
+    return [painel_adapter.validate_python(dict(linha._mapping)) for linha in sessao.execute(consulta)]

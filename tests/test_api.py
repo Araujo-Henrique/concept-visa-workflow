@@ -268,3 +268,46 @@ def test_painel_filtros(client):
     assert len(client.get("/painel", params={"consulado": "SP"}).json()) == 1
     assert len(client.get("/painel", params={"situacao": "Pendente"}).json()) == 1
     assert client.get("/painel", params={"tipo": "XXX"}).status_code == 422
+
+
+def test_painel_cada_tipo_mostra_so_os_campos_que_lhe_pertencem(client):
+    ana = novo_cliente(client, "Ana Souza")
+    novo_obt(client, ana["id"], consulado="SP", data_casv="2026-12-01")
+    client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro"})
+    client.post("/processos-pass", json={"cliente_id": ana["id"], "situacao": "Pendente", "data_pf": "2026-11-20"})
+
+    por_tipo = {linha["tipo"]: linha for linha in client.get("/painel").json()}
+    assert "data_pf" not in por_tipo["OBT"] and "prazo_pf" not in por_tipo["OBT"]
+    assert "data_despacho" not in por_tipo["OBT"] and "data_entrevista" in por_tipo["OBT"]
+    assert "data_entrevista" not in por_tipo["REN"] and "data_despacho" in por_tipo["REN"]
+    assert "consulado" not in por_tipo["PASS"] and "codigo_rastreio" not in por_tipo["PASS"]
+    assert por_tipo["PASS"]["data_pf"] == "2026-11-20"
+    # campo do tipo, mesmo vazio, continua aparecendo (o front não precisa adivinhar se faltou)
+    assert por_tipo["REN"]["consulado"] is None and "consulado" in por_tipo["REN"]
+
+
+def test_painel_obt_mostra_a_orientacao_com_o_nome_de_quem_orientou(client, sessao):
+    from app.models import Perfil, Usuario
+    from sqlalchemy import select
+    perfil = sessao.scalars(select(Perfil).where(Perfil.nome == "atendente")).one()
+    gabriel = Usuario(nome="Gabriel Vieira", email="gabriel@exemplo.com", perfil_id=perfil.id)
+    sessao.add(gabriel)
+    sessao.commit()
+
+    ana = novo_cliente(client, "Ana Souza")
+    novo_obt(client, ana["id"], consulado="SP", solicitantes_extras=["Filho"], orientacao="Agendada",
+             orientacao_data="2026-11-10", orientacao_por_id=gabriel.id)
+    bia = novo_cliente(client, "Bia Lima")
+    novo_obt(client, bia["id"])  # sem orientação indicada
+
+    linhas = {l["cliente"]: l for l in client.get("/painel").json()}
+    ana_obt = linhas["Ana Souza"]
+    assert (ana_obt["orientacao"], ana_obt["orientacao_data"], ana_obt["orientacao_por"]) == (
+        "Agendada", "2026-11-10", "Gabriel Vieira")
+    assert ana_obt["n_solicitantes"] == 2  # o JOIN com usuarios não duplica a contagem
+    assert (linhas["Bia Lima"]["orientacao"], linhas["Bia Lima"]["orientacao_por"]) == ("Pendente", None)
+
+    # só o OBT tem orientação
+    client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro"})
+    ren = next(l for l in client.get("/painel", params={"tipo": "REN"}).json())
+    assert "orientacao" not in ren
