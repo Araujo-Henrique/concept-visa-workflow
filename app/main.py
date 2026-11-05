@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app import db
 from app import deps
-from app.routers import auth, clientes, painel, processos, solicitantes, workflow
+from app.routers import auth, clientes, painel, processos, solicitantes, usuarios, workflow
 
 
 @asynccontextmanager
@@ -22,12 +22,13 @@ app = FastAPI(title="Concept Visa Workflow", lifespan=ciclo_de_vida)
 
 app.include_router(auth.router)  # login e "quem sou eu": o login é a única rota pública
 
-# Todas as demais exigem token. Declarar a dependência aqui (e não rota a rota) evita esquecer alguma.
-# A autorização por perfil (quem pode o quê) vem na etapa 6.
-protegidas = [Depends(deps.usuario_atual)]
+# Todas as demais exigem login E a permissão do método (GET lê, POST/PATCH escrevem, DELETE apaga).
+# Declarar aqui, e não rota a rota, evita esquecer alguma: uma rota nova já nasce protegida.
+protegidas = [Depends(deps.autorizar)]
 for roteador in (clientes.router, processos.router_obt, processos.router_ren, processos.router_pass,
                  solicitantes.router, workflow.router, painel.router):
     app.include_router(roteador, dependencies=protegidas)
+app.include_router(usuarios.router)  # administração: exige a permissão `administrar` (só admin)
 
 
 # Rede de segurança: as regras já são checadas antes de gravar, mas o banco é a palavra final

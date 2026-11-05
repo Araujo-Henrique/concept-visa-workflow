@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import seguranca
-from app.models import Perfil, Usuario
+from app.models import AuditoriaUsuario, Perfil, Usuario
 from app.servicos.workflow import ErroDeRegra
 
 
@@ -39,4 +39,64 @@ def definir_senha(sessao: Session, email: str, senha: str) -> Usuario:
     if usuario is None:
         raise ErroDeRegra("Usuário não encontrado", status=404)
     usuario.senha_hash = seguranca.gerar_hash(senha)
+    return usuario
+
+
+# ---------------------------------------------------------------- administração (etapa 6)
+
+def _registrar(sessao: Session, alvo: Usuario, feito_por: Usuario | None, campo: str, antes, depois):
+    sessao.add(AuditoriaUsuario(usuario_id=alvo.id, feito_por_id=feito_por.id if feito_por else None,
+                                campo=campo, valor_anterior=None if antes is None else str(antes),
+                                valor_novo=None if depois is None else str(depois)))
+
+
+def _outros_admins_ativos(sessao: Session, alvo: Usuario) -> int:
+    return sessao.scalar(
+        select(func.count()).select_from(Usuario).join(Perfil)
+        .where(Perfil.nome == "admin", Usuario.ativo.is_(True), Usuario.id != alvo.id))
+
+
+def atualizar_usuario(sessao: Session, alvo: Usuario, feito_por: Usuario, nome: str | None = None,
+                      perfil: str | None = None, ativo: bool | None = None) -> Usuario:
+    """Muda nome, perfil ou ativo e registra cada mudança na auditoria (o commit é de quem chama).
+
+    Trava: a empresa nunca fica sem um administrador ativo, senão ninguém mais consegue gerenciar usuários."""
+    novo_perfil = None
+    if perfil is not None and perfil != alvo.perfil.nome:
+        novo_perfil = sessao.scalars(select(Perfil).where(Perfil.nome == perfil)).first()
+        if novo_perfil is None:
+            raise ErroDeRegra(f"Perfil '{perfil}' não existe (use {[p.nome for p in sessao.scalars(select(Perfil))]})")
+
+    era_admin_ativo = alvo.perfil.nome == "admin" and alvo.ativo
+    sera_admin_ativo = (novo_perfil.nome if novo_perfil else alvo.perfil.nome) == "admin" and \
+                       (alvo.ativo if ativo is None else ativo)
+    if era_admin_ativo and not sera_admin_ativo and _outros_admins_ativos(sessao, alvo) == 0:
+        raise ErroDeRegra("É preciso manter pelo menos um administrador ativo", status=409)
+
+    if novo_perfil is not None:
+        _registrar(sessao, alvo, feito_por, "perfil", alvo.perfil.nome, novo_perfil.nome)
+        alvo.perfil = novo_perfil
+    if ativo is not None and ativo != alvo.ativo:
+        _registrar(sessao, alvo, feito_por, "ativo", alvo.ativo, ativo)
+        alvo.ativo = ativo
+    if nome is not None and nome.strip() != alvo.nome:
+        _registrar(sessao, alvo, feito_por, "nome", alvo.nome, nome.strip())
+        alvo.nome = nome.strip()
+    return alvo
+
+
+def redefinir_senha(sessao: Session, alvo: Usuario, feito_por: Usuario, nova: str) -> Usuario:
+    """Admin define a senha de outro usuário. A auditoria guarda só que houve a troca, nunca a senha."""
+    _validar_senha(nova)
+    alvo.senha_hash = seguranca.gerar_hash(nova)
+    _registrar(sessao, alvo, feito_por, "senha", None, "redefinida")
+    return alvo
+
+
+def trocar_propria_senha(sessao: Session, usuario: Usuario, atual: str, nova: str) -> Usuario:
+    if usuario.senha_hash is None or not seguranca.verificar(atual, usuario.senha_hash):
+        raise ErroDeRegra("Senha atual incorreta")
+    _validar_senha(nova)
+    usuario.senha_hash = seguranca.gerar_hash(nova)
+    _registrar(sessao, usuario, usuario, "senha", None, "trocada pelo próprio usuário")
     return usuario
