@@ -13,13 +13,15 @@ Mapeamento (o que muda de um esquema para o outro):
   codigo_ds160 (linhas)       -> formularios_ds160, ligados ao solicitante pelo primeiro nome
   resultado, status_ds        -> copiados para todos os solicitantes / formulários do processo
   notas_ds160                 -> processos.observacao
-  funcionarios                -> usuarios, só os listados num CSV local (e-mail não existe no banco antigo)
+  funcionarios                -> usuarios, os listados num CSV local (o e-mail não existe no banco antigo).
+                                 Inativos entram com ativo=false: preservam o histórico, mas não têm acesso.
   consulado 'N/D'             -> consulado vazio
 O histórico de situações do banco antigo não existe: cada processo recebe um evento "criado" na situação atual.
 """
 import csv
 import re
 import unicodedata
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -165,7 +167,9 @@ def importar(conexao_origem: Connection, sessao: Session, usuarios_csv: dict | N
 
     # ---- funcionários -> usuários (só os que estão no CSV)
     usuario_por_funcionario: dict[int, int] = {}
+    nome_do_funcionario: dict[int, str] = {}
     for f in origem.todos("funcionarios"):
+        nome_do_funcionario[f["id"]] = f["nome"]
         dados = (usuarios_csv or {}).get(f["nome"].strip().lower())
         if dados is None:
             continue
@@ -226,12 +230,12 @@ def importar(conexao_origem: Connection, sessao: Session, usuarios_csv: dict | N
     tem_cod = origem.tem_coluna("processos_obt", "codigo_ds160")
     tem_notas = origem.tem_coluna("processos_obt", "notas_ds160")
     obt = origem.todos("processos_obt")
-    sem_usuario = 0
+    sem_usuario: Counter = Counter()  # funcionário sem usuário -> quantos processos perderam o "orientação por"
     for r in obt:
         cliente = cliente_novo[r["cliente_id"]]
         por = usuario_por_funcionario.get(r["orientacao_por_id"]) if r["orientacao_por_id"] else None
         if r["orientacao_por_id"] and por is None:
-            sem_usuario += 1
+            sem_usuario[nome_do_funcionario.get(r["orientacao_por_id"], f"id {r['orientacao_por_id']}")] += 1
         processo = ProcessoOBT(
             cliente_id=cliente.id, situacao=r["situacao"],
             consulado=None if r["consulado"] == "N/D" else Consulado(r["consulado"]),
@@ -246,8 +250,9 @@ def importar(conexao_origem: Connection, sessao: Session, usuarios_csv: dict | N
         processo.observacao = _observacao(r["notas_ds160"] if tem_notas else None, extras)
         grava(processo, r["situacao"])
     if sem_usuario:
-        relatorio.avisar(f"{sem_usuario} processos OBT tinham 'orientação por' de um funcionário sem usuário "
-                         "no CSV: o campo ficou vazio")
+        detalhe = ", ".join(f"{nome} ({n})" for nome, n in sem_usuario.most_common())
+        relatorio.avisar(f"{sum(sem_usuario.values())} processos OBT tinham 'orientação por' de funcionários sem "
+                         f"usuário no CSV; o campo ficou vazio. Inclua-os no CSV (inativos entram sem acesso): {detalhe}")
     relatorio.origem["processos_obt"] = len(obt)
 
     # ---- processos REN

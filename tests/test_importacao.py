@@ -165,7 +165,19 @@ def test_usuarios_so_dos_funcionarios_no_csv_e_orientacao_mapeada(origem, sessao
     por_cliente = {p.cliente.nome: p.orientacao_por_id for p in sessao.scalars(select(ProcessoOBT))}
     assert por_cliente["Ana Souza"] == usuarios[0].id
     assert por_cliente["Bia Lima"] is None  # Roger não está no CSV
-    assert any("sem usuário" in a for a in rel.avisos)
+    assert any("sem usuário" in a and "Roger Cardoso (1)" in a for a in rel.avisos)  # o aviso diz quem faltou
+
+
+def test_funcionario_inativo_no_csv_vira_usuario_sem_acesso_e_preserva_o_historico(origem, sessao):
+    criar_origem(origem)
+    csv_completo = {**CSV, "roger cardoso": ("roger@empresa.com.br", "leitor")}
+    rel = importar(origem, sessao, csv_completo)
+    roger = sessao.scalars(select(Usuario).where(Usuario.nome == "Roger Cardoso")).one()
+    assert roger.ativo is False and roger.perfil.nome == "leitor"  # existe, mas não pode entrar
+    bia = sessao.scalars(select(Cliente).where(Cliente.nome == "Bia Lima")).one()
+    obt = sessao.scalars(select(ProcessoOBT).where(ProcessoOBT.cliente_id == bia.id)).one()
+    assert obt.orientacao_por_id == roger.id  # a orientação continua atribuída a quem a deu
+    assert not any("sem usuário" in a for a in rel.avisos)
 
 
 def test_passaporte_sem_situacao_vira_pendente(origem, sessao):
