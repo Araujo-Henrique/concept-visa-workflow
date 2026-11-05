@@ -12,9 +12,11 @@ import getpass
 import sys
 
 from dotenv import load_dotenv
+from sqlalchemy import select
 
 from app import db
-from app.servicos.usuarios import criar_usuario, definir_senha
+from app.models import Usuario
+from app.servicos.usuarios import achar_por_email, criar_usuario, definir_senha
 from app.servicos.workflow import ErroDeRegra
 
 
@@ -46,6 +48,12 @@ def main() -> int:
                 usuario = criar_usuario(sessao, args.nome, args.email, args.perfil, senha)
                 print(f"Usuário criado: {usuario.nome} <{usuario.email}> ({args.perfil})")
             else:
+                # confere o e-mail ANTES de pedir a senha, e mostra quais e-mails existem se não achar
+                if achar_por_email(sessao, args.email) is None:
+                    existentes = [u.email for u in sessao.scalars(select(Usuario).order_by(Usuario.id).limit(30))]
+                    print(f"Erro: nenhum usuário com o e-mail '{args.email}'.")
+                    print("E-mails cadastrados neste banco:", ", ".join(existentes) or "(nenhum)")
+                    return 1
                 usuario = definir_senha(sessao, args.email, pedir_senha())
                 print(f"Senha definida para {usuario.email}")
             sessao.commit()
