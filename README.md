@@ -41,6 +41,7 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 
 | Recurso | Rotas |
 |---|---|
+| Autenticação | `POST /auth/login`, `GET /auth/eu` |
 | Clientes | `/clientes` (CRUD, busca por nome, grupo, telefone) |
 | Processos | `/processos-obt`, `/processos-ren`, `/processos-pass` (CRUD e filtros) |
 | Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
@@ -59,6 +60,25 @@ mudança e o evento juntos.
   (negativa seguida de nova tentativa é um caso normal).
 - A linha do processo é travada durante a mudança (`SELECT ... FOR UPDATE`): duas mudanças simultâneas viram
   uma fila e o histórico nunca registra uma "situação anterior" errada.
+
+## Autenticação
+Todas as rotas, menos o login, exigem um token (`Authorization: Bearer <token>`); sem ele, 401.
+
+```
+# 1. crie o primeiro administrador (a senha é pedida no terminal, nunca vai para o código ou o histórico)
+python -m scripts.usuario criar --nome "Seu Nome" --email voce@empresa.com.br --perfil admin
+# 2. usuários vindos da importação não têm senha; defina a de cada um
+python -m scripts.usuario senha --email fulano@empresa.com.br
+# 3. na API: POST /auth/login com {"email", "senha"} devolve o token; no /docs, botão "Authorize" e cole o token
+```
+
+- A senha vira hash argon2 (com sal) e nunca é guardada. Mínimo de 10 caracteres.
+- O token (JWT) dura 30 minutos (`JWT_EXPIRA_MINUTOS`) e leva só o id do usuário. **Perfil e `ativo` são lidos
+  do banco a cada requisição**: desativar alguém (`ativo = false`) ou mudar seu perfil vale na hora.
+- Falhas de login (senha errada, e-mail inexistente, usuário inativo ou só-Google) dão a mesma resposta 401.
+  Usuário inativo nem chega a ter a senha conferida.
+- `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.
+- Processos e eventos registram quem os criou ou alterou.
 
 ## Importação do banco do Projeto 1
 `app/importacao/projeto1.py` migra clientes e processos do Concept Client Registry para este esquema
@@ -79,5 +99,5 @@ python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de v
 - Recusa um banco de destino que já tenha dados e funciona com bancos antigos sem as colunas do DS-160.
 
 ## Estado
-Etapas 1 a 4 concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico e
-importação do Projeto 1 (ensaiada com dados anonimizados). Próxima: autenticação (etapa 5).
+Etapas 1 a 4 e 5a concluídas: modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
+importação do Projeto 1 e autenticação por senha + JWT. Próximas: "Entrar com Google" (5b) e autorização por perfil (6).
