@@ -228,3 +228,16 @@ class Evento(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     processo: Mapped[Processo] = relationship(back_populates="eventos")
+
+
+class AuditoriaUsuario(Base):
+    """Quem mudou o quê num usuário (perfil, ativo, nome, senha) e quando. Não guarda a senha: só que mudou."""
+    __tablename__ = "auditoria_usuarios"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))  # quem sofreu a mudança
+    feito_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"))  # quem fez
+    campo: Mapped[str] = mapped_column(String(30))
+    valor_anterior: Mapped[str | None] = mapped_column(Text)
+    valor_novo: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
