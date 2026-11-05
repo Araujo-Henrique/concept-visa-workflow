@@ -15,6 +15,8 @@ from app import db
 from app.models import Cliente, ProcessoOBT, Solicitante
 
 load_dotenv()
+# segredo só dos testes (não é o do .env): o token precisa assinar sem depender da máquina
+os.environ["JWT_SECRET"] = "segredo-apenas-para-testes-com-mais-de-32-caracteres"
 
 # tabelas com dados de teste; perfis e situacoes são dados de referência e ficam
 TABELAS = "eventos, formularios_ds160, solicitantes, processo_obt, processo_ren, processo_pass, " \
@@ -51,13 +53,33 @@ def sessao(engine):
         yield sessao
 
 
+SENHA_TESTE = "senha-de-teste-123"
+
+
 @pytest.fixture
-def client(sessao):
-    """Cliente HTTP da API, ligado ao banco de teste (a fixture `sessao` já limpou as tabelas).
-    Sem `with`, o lifespan não roda: a sessão continua ligada ao banco de teste, nunca ao DATABASE_URL."""
+def usuario_teste(sessao):
+    """Usuário admin ativo, criado no banco de teste para as requisições autenticadas."""
+    from app.servicos.usuarios import criar_usuario
+    usuario = criar_usuario(sessao, "Usuario Teste", "teste@exemplo.com", "admin", SENHA_TESTE)
+    sessao.commit()
+    return usuario
+
+
+@pytest.fixture
+def client_anonimo(sessao):
+    """Cliente HTTP SEM login. Sem `with`, o lifespan não roda: a sessão continua ligada ao banco de teste,
+    nunca ao DATABASE_URL."""
     from fastapi.testclient import TestClient
     from app.main import app
     return TestClient(app)
+
+
+@pytest.fixture
+def client(client_anonimo, usuario_teste):
+    """Cliente HTTP já logado como `usuario_teste`: todas as requisições levam o token."""
+    from app.seguranca import criar_token
+    client_anonimo.headers["Authorization"] = f"Bearer {criar_token(usuario_teste.id)}"
+    return client_anonimo
 
 
 @pytest.fixture

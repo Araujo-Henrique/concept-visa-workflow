@@ -5,5 +5,7 @@ sqlalchemy>=2.0
 alembic
 psycopg[binary]
 python-dotenv
+pwdlib[argon2]
+PyJWT
 pytest
 httpx2

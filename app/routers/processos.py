@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.deps import Sessao
+from app.deps import Sessao, UsuarioAtual
 from app.enums import Consulado, TipoEvento
 from app.models import (Cliente, Evento, Processo, ProcessoOBT, ProcessoPASS, ProcessoREN, Solicitante)
 from app.routers.comum import aplicar_patch, obter_ou_404
@@ -29,7 +29,7 @@ def rotas_processo(prefixo: str, modelo: type[Processo], base: type[BaseModel], 
         return processo
 
     @router.post("", response_model=saida, status_code=201)
-    def criar(dados: criar_schema, sessao: Sessao):  # type: ignore[valid-type]
+    def criar(dados: criar_schema, sessao: Sessao, usuario: UsuarioAtual):  # type: ignore[valid-type]
         cliente = sessao.get(Cliente, dados.cliente_id)
         if cliente is None:
             raise HTTPException(status_code=422, detail="Cliente não encontrado")
@@ -39,11 +39,11 @@ def rotas_processo(prefixo: str, modelo: type[Processo], base: type[BaseModel], 
                 raise HTTPException(
                     status_code=422, detail="O processo anterior não existe ou é de outro cliente")
 
-        processo = modelo(**dados.model_dump(exclude={"solicitantes_extras"}))
+        processo = modelo(**dados.model_dump(exclude={"solicitantes_extras"}), criado_por_id=usuario.id)
         # tudo abaixo é gravado numa transação só: ou o processo nasce completo, ou não nasce
         processo.solicitantes.append(Solicitante(nome=cliente.nome, titular=True))
         processo.solicitantes.extend(Solicitante(nome=nome) for nome in dados.solicitantes_extras)
-        processo.eventos.append(Evento(tipo=TipoEvento.CRIADO, situacao_nova=dados.situacao))
+        processo.eventos.append(Evento(tipo=TipoEvento.CRIADO, situacao_nova=dados.situacao, usuario_id=usuario.id))
         sessao.add(processo)
         sessao.commit()
         sessao.refresh(processo)  # traz o que o banco preencheu (id, datas, data_despacho)

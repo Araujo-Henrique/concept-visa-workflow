@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app import db
-from app.routers import clientes, painel, processos, solicitantes, workflow
+from app import deps
+from app.routers import auth, clientes, painel, processos, solicitantes, workflow
 
 
 @asynccontextmanager
@@ -19,13 +20,14 @@ async def ciclo_de_vida(app: FastAPI):
 
 app = FastAPI(title="Concept Visa Workflow", lifespan=ciclo_de_vida)
 
-app.include_router(clientes.router)
-app.include_router(processos.router_obt)
-app.include_router(processos.router_ren)
-app.include_router(processos.router_pass)
-app.include_router(solicitantes.router)
-app.include_router(workflow.router)
-app.include_router(painel.router)
+app.include_router(auth.router)  # login e "quem sou eu": o login é a única rota pública
+
+# Todas as demais exigem token. Declarar a dependência aqui (e não rota a rota) evita esquecer alguma.
+# A autorização por perfil (quem pode o quê) vem na etapa 6.
+protegidas = [Depends(deps.usuario_atual)]
+for roteador in (clientes.router, processos.router_obt, processos.router_ren, processos.router_pass,
+                 solicitantes.router, workflow.router, painel.router):
+    app.include_router(roteador, dependencies=protegidas)
 
 
 # Rede de segurança: as regras já são checadas antes de gravar, mas o banco é a palavra final
