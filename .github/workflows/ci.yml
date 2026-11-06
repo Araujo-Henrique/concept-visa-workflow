@@ -1,0 +1,100 @@
+name: CI
+
+# Quando roda: a cada push na main e em todo pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# O token do workflow só precisa ler o código (menor privilégio).
+permissions:
+  contents: read
+
+# Se chegar um push novo na mesma branch, cancela a execução antiga que ficou para trás.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------------------------
+  # Backend: pytest contra um PostgreSQL de verdade (o mesmo tipo de banco da produção).
+  # ---------------------------------------------------------------------------------------------
+  backend:
+    name: Backend (pytest + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Um PostgreSQL descartável, criado só para esta execução. O nome termina em _test,
+    # que é a regra de segurança do conftest (ele se recusa a rodar em outro banco).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: concept_visa_workflow_test
+        ports:
+          - 5432:5432
+        # Só começa os passos quando o banco já aceita conexões.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Segredos de verdade nunca entram aqui: é um banco que nasce e morre dentro do job.
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/concept_visa_workflow_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip # guarda o download das bibliotecas entre execuções
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      # O conftest recria o esquema e roda `alembic upgrade head`: se uma migration quebrar,
+      # a suíte inteira falha aqui, num banco vazio (sem nenhum estado da sua máquina).
+      - name: Rodar testes
+        run: python -m pytest -q
+
+  # ---------------------------------------------------------------------------------------------
+  # Front: formatação, lint, tipos e Jest (é o mesmo `npm test` que você roda localmente).
+  # ---------------------------------------------------------------------------------------------
+  frontend:
+    name: Front (lint, tipos e Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: web
+
+    env:
+      HUSKY: "0" # no CI não instala os hooks de commit (o script `prepare` respeita isso)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # `npm ci` instala exatamente o que está no package-lock.json (reprodutível);
+      # `npm install` poderia escolher versões diferentes.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Formatação, lint, tipos e testes
+        run: npm test
+
+      # Só o que vai para produção, e só falha em severidade alta ou crítica.
+      # As falhas moderadas que sobraram estão em ferramentas de desenvolvimento (ver README).
+      - name: Auditoria de dependências de produção
+        run: npm audit --omit=dev --audit-level=high
