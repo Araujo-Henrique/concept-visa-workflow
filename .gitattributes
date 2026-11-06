@@ -1,0 +1,14 @@
+# Final de linha LF no repositorio e na pasta de trabalho, em qualquer maquina.
+# Sem isso, o Git do Windows (core.autocrlf=true) converte para CRLF e o Prettier reprova todos os arquivos.
+* text=auto eol=lf
+
+# Binarios: nunca converter
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
