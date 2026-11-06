@@ -16,14 +16,17 @@ Próximas fases: processos (tabela, kanban e detalhe em "passaporte"), agenda, c
 
 ## Como rodar
 
-Pré-requisitos: Node.js 20.9+ e a API rodando (veja o README da raiz: `uvicorn app.main:app --env-file .env`).
+Pré-requisitos: Node.js 20.9+ e a API configurada (venv e `.env` da raiz; veja o README da raiz).
 
 ```powershell
 cd web
 npm install
 copy .env.example .env.development   # preencha API_URL
-npm run dev                           # http://localhost:3000
+npm run dev                           # sobe a API (porta 8000) e o front (http://localhost:3000) juntos
 ```
+
+`npm run dev` liga os dois servidores num terminal só (logs marcados `[api]` e `[web]`); `Ctrl+C` desliga
+os dois. Para subir só o front (com a API já ligada em outro terminal): `npx next dev`.
 
 ## Testes
 

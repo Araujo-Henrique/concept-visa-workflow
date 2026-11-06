@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --reload --env-file .env\" \"next dev\"",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",

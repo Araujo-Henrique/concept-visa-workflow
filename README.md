@@ -52,7 +52,7 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 | Resumo e agenda | `GET /painel/resumo` (contagens por tipo, situação e resultado), `GET /painel/agenda?de=&ate=` (datas do período, até 92 dias) |
 | Referências | `GET /referencias`: situações por tipo, consulados e demais valores válidos (para filtros e formulários) |
 
-O front (Next.js) fica em [web/](web/README.md).
+O front (Next.js) fica em [web/](web/README.md). Para ligar a API e o front juntos: `cd web` e `npm run dev`.
 
 Regras: ao criar um processo, o titular (com o nome do cliente), os solicitantes extras e o evento "criado"
 são gravados numa transação só. A situação não muda pelo PATCH: só pela rota de workflow, que grava a
