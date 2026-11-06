@@ -59,8 +59,10 @@ jobs:
 
       # O conftest recria o esquema e roda `alembic upgrade head`: se uma migration quebrar,
       # a suíte inteira falha aqui, num banco vazio (sem nenhum estado da sua máquina).
-      - name: Rodar testes
-        run: python -m pytest -q
+      # --cov mede quais linhas e ramos os testes executam; o resumo (com as linhas que faltam)
+      # aparece no log. Ainda sem piso mínimo: primeiro olhamos os números, depois decidimos.
+      - name: Rodar testes com cobertura
+        run: python -m pytest -q --cov=app --cov=scripts --cov-branch --cov-report=term-missing:skip-covered
 
   # ---------------------------------------------------------------------------------------------
   # Front: formatação, lint, tipos e Jest (é o mesmo `npm test` que você roda localmente).
