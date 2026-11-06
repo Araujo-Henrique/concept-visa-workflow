@@ -2,12 +2,14 @@
  * @jest-environment jsdom
  */
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { Estrutura } from "@/components/shell/estrutura";
 import type { Usuario } from "@/lib/tipos";
 
-jest.mock("next/navigation", () => ({ usePathname: () => "/" }));
+jest.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: jest.fn() }) }));
 jest.mock("@/app/acoes/auth", () => ({ sair: jest.fn(), entrar: jest.fn() }));
+jest.mock("@/app/acoes/processos", () => ({ buscar: jest.fn().mockResolvedValue([]) }));
 
 const pessoa = (perfil: Usuario["perfil"]): Usuario => ({
   id: 1,
@@ -43,7 +45,14 @@ describe("menu lateral", () => {
     render(<Estrutura usuario={pessoa("leitor")}>x</Estrutura>);
     const menu = menuPrincipal();
     expect(menu.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
-    expect(menu.queryByRole("link", { name: /Processos/ })).not.toBeInTheDocument();
+    expect(menu.getByRole("link", { name: "Processos" })).not.toHaveAttribute("aria-current");
+    expect(menu.queryByRole("link", { name: /Clientes/ })).not.toBeInTheDocument(); // próxima fase
     expect(menu.getAllByText("em breve").length).toBeGreaterThan(0);
+  });
+
+  it("a busca abre com Ctrl+K", async () => {
+    render(<Estrutura usuario={pessoa("leitor")}>x</Estrutura>);
+    await userEvent.keyboard("{Control>}k{/Control}");
+    expect(await screen.findByPlaceholderText("Nº do processo ou nome do cliente…")).toBeInTheDocument();
   });
 });

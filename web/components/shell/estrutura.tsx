@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 
 import { Logotipo } from "@/components/marca/logotipo";
 import { Simbolo } from "@/components/marca/simbolo";
+import { BuscaGlobal } from "@/components/shell/busca-global";
 import { MenuUsuario } from "@/components/shell/menu-usuario";
 import { ativo, MENU } from "@/components/shell/navegacao";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -28,6 +29,11 @@ function Navegacao({ usuario, aoNavegar }: { usuario: Usuario; aoNavegar?: () =>
         >
           <Logotipo claro className="text-[1.35rem]" />
         </Link>
+      </div>
+
+      <div className="px-3 pb-4">
+        {/* só a instância da lateral escuta o Ctrl+K (a do menu do celular é só o botão) */}
+        <BuscaGlobal atalho={!aoNavegar} />
       </div>
 
       <nav aria-label="Principal" className="flex-1 px-3">
