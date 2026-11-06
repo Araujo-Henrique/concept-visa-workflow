@@ -1,1 +1,2 @@
-npx commitlint --edit $1
+# O Git roda este hook na raiz do repositorio; o commitlint e a configuracao ficam em web/
+cd web && npx --no-install commitlint --edit "$1"
