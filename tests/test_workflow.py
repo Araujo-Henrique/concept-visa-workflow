@@ -7,6 +7,7 @@ from app import db
 from app.models import Evento, Processo
 from app.servicos.workflow import mudar_situacao
 from tests.test_api import novo_cliente, novo_obt
+from tests.test_autorizacao import como  # noqa: F401  (fixture)
 
 
 def processo_obt(client, situacao="Processando"):
@@ -37,6 +38,22 @@ def test_historico_mostra_a_linha_do_tempo_em_ordem(client):
     assert linha == [("criado", None, "Processando"),
                      ("situacao_alterada", "Processando", "Pago"),
                      ("situacao_alterada", "Pago", "Concluido")]
+
+
+def test_historico_diz_quem_fez_cada_mudanca(client, usuario_teste, como):
+    processo = processo_obt(client)  # criado pelo usuario_teste (admin)
+    leitor = como("leitor")
+    muda(client, processo["id"], "Pago")
+    eventos = leitor.get(f"/processos/{processo['id']}/eventos").json()  # qualquer perfil vê o nome
+    assert [e["usuario_nome"] for e in eventos] == ["Usuario Teste", "Usuario Teste"]
+
+
+def test_historico_sem_usuario_mostra_nome_vazio(client, sessao):
+    processo = processo_obt(client)
+    sessao.add(Evento(processo_id=processo["id"], tipo="situacao_alterada", situacao_anterior="Processando",
+                      situacao_nova="Pago"))  # ex.: evento da importação, sem usuário
+    sessao.commit()
+    assert client.get(f"/processos/{processo['id']}/eventos").json()[-1]["usuario_nome"] is None
 
 
 def test_situacao_invalida_para_o_tipo_da_422_e_nao_grava(client):

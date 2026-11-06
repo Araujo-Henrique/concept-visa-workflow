@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app.deps import Sessao, UsuarioAtual
-from app.models import Evento, Processo
+from app.models import Evento, Processo, Usuario
 from app.routers.comum import obter_ou_404
 from app.schemas.workflow import EventoOut, MudarSituacao
 from app.servicos.workflow import ErroDeRegra, mudar_situacao
@@ -18,12 +18,15 @@ def mudar(processo_id: int, dados: MudarSituacao, sessao: Sessao, usuario: Usuar
     except ErroDeRegra as erro:
         raise HTTPException(status_code=erro.status, detail=erro.mensagem)
     sessao.commit()
-    return EventoOut.model_validate(processo.eventos[-1])
+    return EventoOut.model_validate(processo.eventos[-1]).model_copy(update={"usuario_nome": usuario.nome})
 
 
 @router.get("/{processo_id}/eventos", response_model=list[EventoOut])
 def historico(processo_id: int, sessao: Sessao):
-    """Linha do tempo do processo, do mais antigo ao mais recente."""
+    """Linha do tempo do processo, do mais antigo ao mais recente, com o nome de quem fez cada mudança.
+    O nome vem aqui (e não da rota /usuarios, que é só do admin) para qualquer perfil ver o histórico."""
     obter_ou_404(sessao, Processo, processo_id, "Processo")
-    eventos = sessao.scalars(select(Evento).where(Evento.processo_id == processo_id).order_by(Evento.id))
-    return [EventoOut.model_validate(e) for e in eventos]
+    linhas = sessao.execute(
+        select(Evento, Usuario.nome).outerjoin(Usuario, Usuario.id == Evento.usuario_id)
+        .where(Evento.processo_id == processo_id).order_by(Evento.id))
+    return [EventoOut.model_validate(e).model_copy(update={"usuario_nome": nome}) for e, nome in linhas]

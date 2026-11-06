@@ -24,3 +24,4 @@ class EventoOut(BaseModel):
     situacao_nova: str | None
     motivo: str | None
     criado_em: datetime
+    usuario_nome: str | None = None  # quem fez (vazio em eventos sem usuário, como os da importação)
