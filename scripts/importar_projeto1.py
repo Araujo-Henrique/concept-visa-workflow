@@ -3,6 +3,7 @@
 Uso (na raiz do projeto, com a venv ativa):
     python -m scripts.importar_projeto1 --simular               # roda tudo e DESFAZ no final (ensaio)
     python -m scripts.importar_projeto1 --usuarios usuarios.csv # grava de verdade
+    (nos dois modos, as exceções vão para excecoes_importacao.csv; mude com --excecoes caminho.csv)
 
 Variáveis do .env (cada máquina tem as suas):
     SOURCE_DATABASE_URL   banco antigo (Projeto 1), só leitura
@@ -30,6 +31,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--simular", action="store_true", help="faz tudo e desfaz no final, sem gravar nada")
     ap.add_argument("--usuarios", help="CSV nome;email;perfil dos funcionários que viram usuários")
+    ap.add_argument("--excecoes", default="excecoes_importacao.csv",
+                    help="CSV com tudo o que foi decidido por regra e merece olhar humano (fica fora do Git)")
     args = ap.parse_args()
 
     load_dotenv()
@@ -63,13 +66,23 @@ def main() -> int:
     for chave in relatorio.origem:
         marca = "" if relatorio.origem[chave] == relatorio.destino[chave] else "  <- diferente"
         print(f"{chave:40}{relatorio.origem[chave]:>10}{relatorio.destino[chave]:>10}{marca}")
-    if relatorio.n_avisos:
-        print(f"\n{relatorio.n_avisos} avisos (mostrando {len(relatorio.avisos)}):")
-        for aviso in relatorio.avisos:
+    if relatorio.normalizados:
+        print("\nCorreções automáticas (registros alterados):")
+        for campo, n in sorted(relatorio.normalizados.items()):
+            print(f"  {campo:45}{n:>8}")
+    por_categoria = relatorio.por_categoria()
+    if por_categoria:
+        print("\nExceções por categoria (detalhe no CSV):")
+        for categoria, n in por_categoria.most_common():
+            print(f"  {categoria:45}{n:>8}")
+    relatorio.exportar_csv(args.excecoes)
+    print(f"\n{len(relatorio.excecoes)} exceções exportadas em {args.excecoes}")
+    for aviso in relatorio.avisos:
+        if "[" not in aviso:  # os demais avisos já estão no CSV
             print(" -", aviso)
 
     if not relatorio.confere():
-        print("\nFALHA: clientes ou processos não batem. NADA foi gravado.")
+        print("\nFALHA: a conferência não bateu. NADA foi gravado.")
         return 1
     print("\nSimulação concluída: nada foi gravado." if args.simular else "\nImportação gravada.")
     return 0

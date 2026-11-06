@@ -114,6 +114,14 @@ python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de v
 - `n_solicitantes` vira N solicitantes (o titular leva o nome do cliente; os outros ganham o primeiro nome que
   aparece nos códigos do DS-160). Os códigos viram formulários, `notas_ds160` vira a observação do processo e
   o consulado `N/D` vira consulado vazio.
+- **Padronização na importação** (o banco antigo não é alterado): o leitor de códigos tolera traço opcional, "novo" sem
+  traço, vários códigos por linha e comentários; e-mail em minúsculas, telefone só dígitos, nomes em CAIXA ALTA em
+  Nome Próprio e grupos unificados.
+- `n_solicitantes` é a verdade: o processo tem exatamente N solicitantes. Código repetido (cliente que passou de REN
+  para OBT) fica no processo mais recente; o outro guarda uma nota na observação. Passaporte sem situação vira `Pendente`.
+- A conferência exige que clientes, processos, solicitantes e formulários batam (formulário = criado ou repetido
+  explicado). Tudo o que foi decidido por regra vai para `excecoes_importacao.csv` (fora do Git), sempre com as
+  mesmas colunas: `categoria;tabela;id_origem;cliente_id_origem;detalhe;acao`.
 - `--usuarios` é opcional: CSV local (`nome;email;perfil`, fora do Git) dos funcionários que viram usuários.
 - Recusa um banco de destino que já tenha dados e funciona com bancos antigos sem as colunas do DS-160.
 

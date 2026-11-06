@@ -8,3 +8,6 @@ __pycache__/
 
 # lista local de e-mails dos funcionarios reais (nao vai para o Git)
 usuarios*.csv
+
+# exceções da importação (contêm dados reais)
+excecoes*.csv
