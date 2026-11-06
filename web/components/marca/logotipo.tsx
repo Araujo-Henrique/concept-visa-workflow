@@ -1,20 +1,23 @@
+import { ANEL, SETA } from "@/components/marca/simbolo";
 import { cn } from "@/lib/utils";
 
 /**
- * Nome "CONCEPT VISTOS" como na logo oficial: o O de CONCEPT é um anel com uma seta azul,
- * o O final de VISTOS é um globo azul com um avião. Texto real (acessível e nítido em qualquer tamanho).
+ * Nome "CONCEPT VISTOS" como na logo oficial: o O de CONCEPT é o próprio símbolo (pin) deitado, apontando
+ * para a direita (anel na cor do texto, "V" azul na abertura); o O final de VISTOS é um globo azul com avião.
+ * Texto real (acessível e nítido em qualquer tamanho).
  */
-function OSeta() {
+function OSimbolo() {
+  // mesma geometria do símbolo (viewBox 610 x 725), girada -90°: (x, y) -> (y, -x)
   return (
-    <svg viewBox="0 0 100 100" className="inline-block h-[0.74em] w-[0.74em] align-baseline" aria-hidden>
-      <path
-        d="M 76 22 A 38 38 0 1 0 76 78"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="17"
-        strokeLinecap="butt"
-      />
-      <path d="M 46 20 L 80 50 L 46 80 L 35 69 L 56 50 L 35 31 Z" fill="var(--marca)" />
+    <svg
+      viewBox="0 -612 728 616"
+      className="mx-[0.02em] inline-block h-[0.74em] w-[0.875em] align-baseline"
+      aria-hidden
+    >
+      <g transform="rotate(-90)">
+        <path d={ANEL} fill="currentColor" />
+        <path d={SETA} fill="var(--marca)" />
+      </g>
     </svg>
   );
 }
@@ -47,7 +50,7 @@ export function Logotipo({ className, claro = false, empilhado = true }: Props) 
       aria-label="Concept Vistos"
     >
       <span className={claro ? "text-papel" : "text-tinta dark:text-papel"} aria-hidden>
-        C<OSeta />
+        C<OSimbolo />
         NCEPT
       </span>
       <span className="text-marca" aria-hidden>
