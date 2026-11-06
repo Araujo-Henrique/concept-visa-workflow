@@ -1,13 +1,14 @@
 # Concept Visa Workflow
 
 Sistema de acompanhamento do fluxo de processos de visto (obtenção, renovação e passaporte), com histórico
-de situações, usuários e perfis. Projeto 2 trilha de estudos; veja [docs/PLANO.md](docs/PLANO.md) para a
-modelagem (DER) e as regras.
+de situações, usuários e perfis. Projeto 2 trilha de estudos; veja [docs/PLANO.md](docs/PLANO.md) para o plano
+e as regras, e [docs/DER.md](docs/DER.md) para o diagrama das tabelas.
 
 > Todos os dados de exemplo deste repositório são fictícios.
 
 ## Stack
-Python 3.14, SQLAlchemy 2.0 (ORM), Alembic (migrations), PostgreSQL, FastAPI, pytest.
+Python 3.14, SQLAlchemy 2.0 (ORM), Alembic (migrations), PostgreSQL, FastAPI, pytest. Front: Next.js (pasta `web/`).
+CI: GitHub Actions.
 
 ## Mesma base de código, duas máquinas
 Só o `.env` e o banco mudam; nada específico de máquina fica no código.
@@ -15,7 +16,7 @@ Só o `.env` e o banco mudam; nada específico de máquina fica no código.
 | | Máquina de testes | Máquina real |
 |---|---|---|
 | Banco | `concept_visa_workflow` (+ `_test`) | `concept_visa_workflow` |
-| Dados | seed fictício (etapa 8) | importados localmente, fora do repositório |
+| Dados | seed fictício (`python -m scripts.seed_ficticio`) | importados localmente, fora do repositório |
 | Migrations | `alembic upgrade head` | `alembic upgrade head` |
 
 A migration base cria só a estrutura e os dados de referência (perfis e situações).
@@ -31,10 +32,29 @@ alembic upgrade head          # cria/atualiza as tabelas
 
 ## Testes
 Rodam num banco só de testes (o nome precisa terminar em `_test`; qualquer outro é recusado) e recriam o
-esquema pelas migrations.
+esquema pelas migrations, então também provam que as migrations criam o que os modelos esperam.
 ```
-pytest
+pytest                                                    # backend
+pytest --cov=app --cov-branch --cov-report=term-missing   # com cobertura (linhas e ramos)
+cd web && npm test                                        # front: Prettier, ESLint, tipos e Jest
+cd web && npm run test:e2e                                # ponta a ponta (precisa da API ligada e de API_URL)
 ```
+
+**Como saber se os testes valem alguma coisa.** Passar não basta. A cobertura mostra o que nenhum teste executa
+(backend em torno de 89%, e o que falta é sobretudo leitura de configuração e scripts de terminal). Para saber se
+os testes *percebem* um defeito, as regras críticas foram quebradas de propósito, uma por vez (atendente
+apagando, usuário desativado entrando, trava do último admin, `FOR UPDATE`, login sem conferir a senha, token
+expirado valendo...). Todas as mutações são pegas por algum teste. Duas só foram pegas depois de um reforço:
+a regra existia também como `CHECK` no banco, que devolvia o mesmo 422, e o teste só olhava o status. Agora ele
+confere a mensagem clara da API e a regra do serviço.
+
+**CI (GitHub Actions, `.github/workflows/ci.yml`).** A cada push e pull request, em máquinas novas e vazias:
+1. *Backend*: pytest com cobertura contra um PostgreSQL descartável.
+2. *Front*: `npm test` e auditoria das dependências de produção (`npm audit --omit=dev --audit-level=high`).
+3. *Ponta a ponta*: PostgreSQL, API e `next dev` de verdade, conferindo a proteção de rotas.
+
+Os avisos moderados que restam no `npm audit` completo estão em ferramentas de desenvolvimento (Jest, ESLint,
+`shadcn`) e dependem de atualização das próprias bibliotecas; as correções que o npm sugere são rebaixar versões.
 
 ## API
 Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a documentação interativa fica em `/docs`.
@@ -129,7 +149,22 @@ python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de v
 - `--usuarios` é opcional: CSV local (`nome;email;perfil`, fora do Git) dos funcionários que viram usuários.
 - Recusa um banco de destino que já tenha dados e funciona com bancos antigos sem as colunas do DS-160.
 
+## Dados fictícios (seed)
+Para a máquina de testes e demonstrações. Tudo é inventado (nomes sorteados, e-mails `@exemplo.com`, códigos
+DS-160 aleatórios) e a semente é fixa: o mesmo comando gera sempre o mesmo conjunto.
+
+```
+python -m scripts.seed_ficticio --confirmo-dados-ficticios     # pede a senha dos usuários demo no terminal
+```
+
+- Cria 3 usuários demo (`admin@`, `atendente@` e `leitor@exemplo.com`) e um ex-funcionário inativo, 36 clientes e
+  seus processos dos três tipos, com solicitantes, formulários DS-160 e histórico gerado pelo mesmo serviço da API.
+- Inclui cenários prontos para demonstrar: negativa seguida de nova tentativa e processo reaberto com motivo.
+- **Recusa rodar em banco que já tenha clientes** e exige `--confirmo-dados-ficticios`, para nunca se misturar
+  com os dados reais da outra máquina.
+
 ## Estado
-Etapas 1 a 6 concluídas (MVP): modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
-importação do Projeto 1, autenticação por senha + JWT e autorização por perfil com administração de usuários.
-Próximas: testes em CI e seed fictício (etapas 7 e 8); "Entrar com Google" como melhoria posterior.
+Etapas 1 a 8 concluídas (MVP): modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
+importação do Projeto 1, autenticação por senha + JWT, autorização por perfil com administração de usuários,
+testes com CI e seed fictício. O front (`web/`) está em andamento.
+Pendente: "Entrar com Google" (etapa 5b), como melhoria depois do MVP.
