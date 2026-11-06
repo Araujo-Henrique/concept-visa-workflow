@@ -48,7 +48,11 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 | Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
 | DS-160 | `/solicitantes/{id}/formularios-ds160`, `/formularios-ds160/{id}` |
 | Workflow | `POST /processos/{id}/situacao`, `GET /processos/{id}/eventos` |
-| Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`) |
+| Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`). Total no cabeçalho `X-Total-Count`; período por data com `data` (casv, entrevista, orientacao, despacho, pf, prazo_pf) + `de`/`ate` |
+| Resumo e agenda | `GET /painel/resumo` (contagens por tipo, situação e resultado), `GET /painel/agenda?de=&ate=` (datas do período, até 92 dias) |
+| Referências | `GET /referencias`: situações por tipo, consulados e demais valores válidos (para filtros e formulários) |
+
+O front (Next.js) fica em [web/](web/README.md).
 
 Regras: ao criar um processo, o titular (com o nome do cliente), os solicitantes extras e o evento "criado"
 são gravados numa transação só. A situação não muda pelo PATCH: só pela rota de workflow, que grava a

@@ -50,3 +50,19 @@ class PainelPASS(PainelBase):
 
 PainelOut = Annotated[PainelOBT | PainelREN | PainelPASS, Field(discriminator="tipo")]
 painel_adapter = TypeAdapter(PainelOut)
+
+
+class ResumoTipo(BaseModel):
+    total: int
+    por_situacao: dict[str, int]
+    por_resultado: dict[str, int]  # resultado_geral: Processando, Aprovado, Negado ou Parcial
+
+
+class AgendaItem(BaseModel):
+    data: date
+    evento: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf"]
+    processo_id: int
+    tipo: Literal["OBT", "REN", "PASS"]
+    cliente: str
+    situacao: str
+    consulado: str | None

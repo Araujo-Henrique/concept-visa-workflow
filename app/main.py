@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app import db
 from app import deps
-from app.routers import auth, clientes, painel, processos, solicitantes, usuarios, workflow
+from app.routers import auth, clientes, painel, processos, referencias, solicitantes, usuarios, workflow
 
 
 @asynccontextmanager
@@ -26,7 +26,7 @@ app.include_router(auth.router)  # login e "quem sou eu": o login é a única ro
 # Declarar aqui, e não rota a rota, evita esquecer alguma: uma rota nova já nasce protegida.
 protegidas = [Depends(deps.autorizar)]
 for roteador in (clientes.router, processos.router_obt, processos.router_ren, processos.router_pass,
-                 solicitantes.router, workflow.router, painel.router):
+                 solicitantes.router, workflow.router, painel.router, referencias.router):
     app.include_router(roteador, dependencies=protegidas)
 app.include_router(usuarios.router)  # administração: exige a permissão `administrar` (só admin)
 

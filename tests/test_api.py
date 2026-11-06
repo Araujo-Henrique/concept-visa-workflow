@@ -270,6 +270,79 @@ def test_painel_filtros(client):
     assert client.get("/painel", params={"tipo": "XXX"}).status_code == 422
 
 
+def test_painel_informa_o_total_para_paginar(client):
+    ana = novo_cliente(client, "Ana Souza")
+    for _ in range(3):
+        novo_obt(client, ana["id"])
+    resposta = client.get("/painel", params={"limit": 2})
+    assert len(resposta.json()) == 2
+    assert resposta.headers["X-Total-Count"] == "3"  # o total ignora limit/offset, mas respeita os filtros
+    assert client.get("/painel", params={"tipo": "REN"}).headers["X-Total-Count"] == "0"
+
+
+def test_painel_filtra_por_id_do_processo(client):
+    ana = novo_cliente(client, "Ana Souza")
+    primeiro, _ = novo_obt(client, ana["id"]), novo_obt(client, ana["id"])
+    linhas = client.get("/painel", params={"processo_id": primeiro["id"]}).json()
+    assert [l["processo_id"] for l in linhas] == [primeiro["id"]]
+
+
+def test_painel_filtra_por_periodo_de_uma_data(client):
+    ana = novo_cliente(client, "Ana Souza")
+    dentro = novo_obt(client, ana["id"], consulado="SP", data_casv="2026-12-05", data_entrevista="2027-01-10")
+    novo_obt(client, ana["id"], consulado="SP", data_casv="2027-02-01")
+    novo_obt(client, ana["id"])  # sem data: fica de fora de qualquer período
+    params = {"data": "casv", "de": "2026-12-01", "ate": "2026-12-31"}
+    resposta = client.get("/painel", params=params)
+    assert [l["processo_id"] for l in resposta.json()] == [dentro["id"]] and resposta.headers["X-Total-Count"] == "1"
+    # só o início ou só o fim também valem
+    assert len(client.get("/painel", params={"data": "casv", "de": "2027-01-01"}).json()) == 1
+    assert len(client.get("/painel", params={"data": "entrevista", "ate": "2027-01-31"}).json()) == 1
+    # período sem dizer qual data, data desconhecida ou período invertido: 422
+    assert client.get("/painel", params={"de": "2026-12-01"}).status_code == 422
+    assert client.get("/painel", params={"data": "nascimento", "de": "2026-12-01"}).status_code == 422
+    assert client.get("/painel", params={"data": "casv", "de": "2026-12-31", "ate": "2026-12-01"}).status_code == 422
+
+
+def test_resumo_conta_por_tipo_situacao_e_resultado(client):
+    ana = novo_cliente(client, "Ana Souza")
+    novo_obt(client, ana["id"])
+    novo_obt(client, ana["id"])
+    client.post("/processos-pass", json={"cliente_id": ana["id"], "situacao": "Pendente"})
+    resumo = client.get("/painel/resumo").json()
+    assert resumo["OBT"] == {"total": 2, "por_situacao": {"Processando": 2}, "por_resultado": {"Processando": 2}}
+    assert resumo["PASS"]["total"] == 1 and resumo["PASS"]["por_situacao"] == {"Pendente": 1}
+    assert resumo["REN"] == {"total": 0, "por_situacao": {}, "por_resultado": {}}  # todo tipo aparece
+
+
+def test_agenda_lista_as_datas_do_periodo_em_ordem(client):
+    ana = novo_cliente(client, "Ana Souza")
+    obt = novo_obt(client, ana["id"], consulado="SP", data_casv="2026-11-10", data_entrevista="2026-11-12",
+                   orientacao="Agendada", orientacao_data="2026-11-03")
+    client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro", "consulado": "RIO",
+                                        "data_casv": "2026-11-20"})  # despacho 13/11
+    client.post("/processos-pass", json={"cliente_id": ana["id"], "situacao": "Pendente", "data_pf": "2026-12-25"})
+
+    agenda = client.get("/painel/agenda", params={"de": "2026-11-01", "ate": "2026-11-30"}).json()
+    assert [(a["data"], a["evento"], a["tipo"]) for a in agenda] == [
+        ("2026-11-03", "orientacao", "OBT"), ("2026-11-10", "casv", "OBT"), ("2026-11-12", "entrevista", "OBT"),
+        ("2026-11-13", "despacho", "REN"), ("2026-11-20", "casv", "REN")]  # o PF de dezembro fica de fora
+    assert agenda[0]["processo_id"] == obt["id"] and agenda[0]["cliente"] == "Ana Souza"
+    assert agenda[0]["consulado"] == "SP" and agenda[0]["situacao"] == "Processando"
+
+
+def test_agenda_recusa_periodo_invertido_ou_longo_demais(client):
+    assert client.get("/painel/agenda", params={"de": "2026-11-30", "ate": "2026-11-01"}).status_code == 422
+    assert client.get("/painel/agenda", params={"de": "2026-01-01", "ate": "2026-12-31"}).status_code == 422
+
+
+def test_referencias_trazem_as_situacoes_na_ordem_do_fluxo(client):
+    ref = client.get("/referencias").json()
+    assert ref["situacoes"]["PASS"][0] == "Pendente" and ref["situacoes"]["OBT"][-1] == "Concluido"
+    assert "Pix" in ref["situacoes"]["PASS"] and "Pix" not in ref["situacoes"]["OBT"]
+    assert ref["consulados"] == ["POA", "RIO", "BSB", "SP", "REC"] and ref["perfis"] == ["admin", "atendente", "leitor"]
+
+
 def test_painel_cada_tipo_mostra_so_os_campos_que_lhe_pertencem(client):
     ana = novo_cliente(client, "Ana Souza")
     novo_obt(client, ana["id"], consulado="SP", data_casv="2026-12-01")
