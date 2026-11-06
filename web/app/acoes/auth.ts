@@ -20,9 +20,17 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
   const dados = Credenciais.safeParse({ email: form.get("email"), senha: form.get("senha") });
   if (!dados.success) return { erro: dados.error.issues[0]?.message };
 
+  // configuração ausente é um problema diferente de "API desligada": diz o que falta em vez de confundir
+  let base: string;
+  try {
+    base = urlDaApi();
+  } catch {
+    return { erro: "Configuração incompleta: defina API_URL em web/.env.development (veja .env.example)." };
+  }
+
   let resposta: Response;
   try {
-    resposta = await fetch(`${urlDaApi()}/auth/login`, {
+    resposta = await fetch(`${base}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dados.data),
@@ -53,7 +61,7 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
   });
 
   // nome para o carimbo de boas-vindas (o perfil é sempre lido de novo pela API em cada tela)
-  const eu = await fetch(`${urlDaApi()}/auth/eu`, {
+  const eu = await fetch(`${base}/auth/eu`, {
     headers: { Authorization: `Bearer ${access_token}` },
     cache: "no-store",
   }).then(

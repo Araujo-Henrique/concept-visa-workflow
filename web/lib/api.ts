@@ -34,9 +34,12 @@ async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes
   const token = (await cookies()).get(COOKIE_SESSAO)?.value;
   if (!token) redirect("/login");
 
+  // fora do try: API_URL ausente é erro de configuração (aparece com a mensagem clara), não "API fora do ar"
+  const base = urlDaApi();
+
   let resposta: Response;
   try {
-    resposta = await fetch(urlDaApi() + montarCaminho(caminho, params), {
+    resposta = await fetch(base + montarCaminho(caminho, params), {
       method: metodo,
       headers: {
         Authorization: `Bearer ${token}`,
