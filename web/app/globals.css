@@ -1,0 +1,200 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Identidade Concept Vistos
+ *   marca  #1d9d9d  azul da logo: ilustrações, foco, gráficos, títulos grandes
+ *   marca-forte #167a7a  mesmo azul mais fundo: botões e links no claro (5,1:1 com branco; o #1d9d9d dá 3,3:1)
+ *   tinta  #050510  preto da logo: texto, fundo do modo escuro
+ *   papel  #f5f5f5  branco da logo: fundo do modo claro
+ */
+@theme inline {
+  --color-marca: var(--marca);
+  --color-marca-forte: var(--marca-forte);
+  --color-marca-suave: var(--marca-suave);
+  --color-tinta: #050510;
+  --color-papel: #f5f5f5;
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-suave: var(--sucesso-suave);
+  --color-alerta: var(--alerta);
+  --color-alerta-suave: var(--alerta-suave);
+  --color-perigo: var(--perigo);
+  --color-perigo-suave: var(--perigo-suave);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-montserrat);
+  --font-mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --marca: #1d9d9d;
+  --marca-forte: #167a7a;
+  --marca-suave: #e3f3f3;
+  --sucesso: #1f7a4d;
+  --sucesso-suave: #e2f3ea;
+  --alerta: #8a5a00;
+  --alerta-suave: #fbf0d9;
+  --perigo: #b42335;
+  --perigo-suave: #fbe5e8;
+
+  --background: #f5f5f5;
+  --foreground: #050510;
+  --card: #ffffff;
+  --card-foreground: #050510;
+  --popover: #ffffff;
+  --popover-foreground: #050510;
+  --primary: #167a7a;
+  --primary-foreground: #ffffff;
+  --secondary: #eaeaee;
+  --secondary-foreground: #050510;
+  --muted: #ececf0;
+  --muted-foreground: #5c5c6e;
+  --accent: #e3f3f3;
+  --accent-foreground: #0e4f4f;
+  --destructive: #b42335;
+  --border: #e1e1e8;
+  --input: #d6d6de;
+  --ring: #1d9d9d;
+  --chart-1: #1d9d9d;
+  --chart-2: #050510;
+  --chart-3: #6fc7c7;
+  --chart-4: #8a5a00;
+  --chart-5: #b42335;
+  --radius: 0.75rem;
+  --sidebar: #050510;
+  --sidebar-foreground: #e8e8ee;
+  --sidebar-primary: #1d9d9d;
+  --sidebar-primary-foreground: #050510;
+  --sidebar-accent: #14142a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1c1c33;
+  --sidebar-ring: #1d9d9d;
+}
+
+.dark {
+  --marca: #1d9d9d;
+  --marca-forte: #3cbcbc;
+  --marca-suave: #0f2a2e;
+  --sucesso: #4cc38a;
+  --sucesso-suave: #10261c;
+  --alerta: #f0b44c;
+  --alerta-suave: #2a2210;
+  --perigo: #ff6b7d;
+  --perigo-suave: #2c1218;
+
+  --background: #050510;
+  --foreground: #ececf2;
+  --card: #0d0d1c;
+  --card-foreground: #ececf2;
+  --popover: #10101f;
+  --popover-foreground: #ececf2;
+  --primary: #1d9d9d;
+  --primary-foreground: #050510;
+  --secondary: #17172a;
+  --secondary-foreground: #ececf2;
+  --muted: #15152a;
+  --muted-foreground: #9a9aae;
+  --accent: #0f2a2e;
+  --accent-foreground: #8fe0e0;
+  --destructive: #ff6b7d;
+  --border: #1f1f36;
+  --input: #2a2a44;
+  --ring: #1d9d9d;
+  --chart-1: #1d9d9d;
+  --chart-2: #ececf2;
+  --chart-3: #6fc7c7;
+  --chart-4: #f0b44c;
+  --chart-5: #ff6b7d;
+  --sidebar: #08081a;
+  --sidebar-foreground: #e8e8ee;
+  --sidebar-primary: #1d9d9d;
+  --sidebar-primary-foreground: #050510;
+  --sidebar-accent: #14142a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1c1c33;
+  --sidebar-ring: #1d9d9d;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+  }
+}
+
+/*
+ * Quem pediu "reduzir movimento" (no sistema ou no menu do usuário) não vê animação decorativa.
+ * O sistema vale até o React decidir; depois manda o atributo data-movimento (que respeita
+ * a escolha "Sempre ligadas" do menu).
+ */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-movimento="normal"]) *,
+  html:not([data-movimento="normal"]) *::before,
+  html:not([data-movimento="normal"]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+html[data-movimento="reduzido"] *,
+html[data-movimento="reduzido"] *::before,
+html[data-movimento="reduzido"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
