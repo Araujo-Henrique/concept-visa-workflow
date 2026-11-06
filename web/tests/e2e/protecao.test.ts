@@ -1,9 +1,10 @@
 /**
- * Roda contra o `next dev` de verdade (npm run test:e2e). Não precisa da API: só confere a porta de entrada.
+ * Roda contra o `next dev` de verdade (npm run test:e2e). Os testes "sem login" só conferem a porta de
+ * entrada; o de "cookie inválido" precisa da API ligada (e de API_URL) para ela responder 401.
  */
 const BASE = process.env.E2E_URL ?? "http://localhost:3000";
 
-async function esperarServidor(tentativas = 60) {
+async function esperarServidor(tentativas = 160) {
   for (let i = 0; i < tentativas; i++) {
     try {
       const r = await fetch(`${BASE}/login`);
