@@ -1,17 +1,21 @@
 import { Plane } from "lucide-react";
+import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 
+import { DIAS_DO_PAINEL, PainelEmbarque } from "@/components/inicio/painel-embarque";
 import { Contador } from "@/components/movimento/contador";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hojeEmSP, somarDias } from "@/lib/agenda";
 import { apiGet } from "@/lib/api";
 import { emAndamento, rotuloSituacao, saudacao, situacoesAbertas, TIPOS } from "@/lib/formatos";
 import { usuarioAtual } from "@/lib/sessao";
-import type { Resumo, ResumoTipo, TipoProcesso } from "@/lib/tipos";
+import type { AgendaItem, Resumo, ResumoTipo, TipoProcesso } from "@/lib/tipos";
 
 const ORDEM = Object.keys(TIPOS) as TipoProcesso[];
 
 /**
- * Início: um "cartão de embarque" por tipo de processo, com o que está em andamento.
+ * Início: um "cartão de embarque" por tipo de processo, com o que está em andamento, e o painel de embarque
+ * com as datas marcadas dos próximos dias.
  * Navegação instantânea: a moldura aparece na hora e cada parte que depende da API chega por streaming,
  * dentro do seu próprio <Suspense> (dado de trabalho não é cacheado: os números são sempre os atuais).
  */
@@ -34,8 +38,24 @@ export default function Inicio() {
           <Cartoes />
         </Suspense>
       </section>
+
+      <div className="mt-8">
+        <Suspense fallback={<PainelEmbarque />}>
+          <Embarques />
+        </Suspense>
+      </div>
     </div>
   );
+}
+
+async function Embarques() {
+  await connection(); // "hoje" é da hora do pedido, não do build
+  const hoje = hojeEmSP();
+  const itens = await apiGet<AgendaItem[]>("/painel/agenda", {
+    de: hoje,
+    ate: somarDias(hoje, DIAS_DO_PAINEL - 1),
+  });
+  return <PainelEmbarque itens={itens} hoje={hoje} />;
 }
 
 async function Saudacao() {

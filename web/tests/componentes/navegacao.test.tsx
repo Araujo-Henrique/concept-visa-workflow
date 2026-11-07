@@ -41,13 +41,19 @@ describe("menu lateral", () => {
     }
   });
 
-  it("marca a página atual e mostra as próximas telas como 'em breve', sem link", () => {
+  it("marca a página atual", () => {
     render(<Estrutura usuario={pessoa("leitor")}>x</Estrutura>);
     const menu = menuPrincipal();
     expect(menu.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
     expect(menu.getByRole("link", { name: "Processos" })).not.toHaveAttribute("aria-current");
     expect(menu.getByRole("link", { name: "Clientes" })).toBeInTheDocument();
-    expect(menu.queryByRole("link", { name: /Agenda/ })).not.toBeInTheDocument(); // próxima fase
+    expect(menu.getByRole("link", { name: "Agenda" })).toBeInTheDocument();
+  });
+
+  it("telas das próximas fases aparecem como 'em breve', sem link", () => {
+    render(<Estrutura usuario={pessoa("admin")}>x</Estrutura>);
+    const menu = menuPrincipal();
+    expect(menu.queryByRole("link", { name: /Usuários/ })).not.toBeInTheDocument(); // próxima fase
     expect(menu.getAllByText("em breve").length).toBeGreaterThan(0);
   });
 

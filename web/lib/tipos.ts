@@ -121,3 +121,16 @@ export type Cliente = {
 export type ClienteLista = Cliente & { n_processos: number };
 
 export type UsuarioResumo = { id: number; nome: string };
+
+export type EventoAgenda = "orientacao" | "casv" | "entrevista" | "despacho" | "pf" | "prazo_pf";
+
+/** Um compromisso da agenda (/painel/agenda): uma data marcada de um processo. */
+export type AgendaItem = {
+  data: string;
+  evento: EventoAgenda;
+  processo_id: number;
+  tipo: TipoProcesso;
+  cliente: string;
+  situacao: string;
+  consulado: string | null;
+};

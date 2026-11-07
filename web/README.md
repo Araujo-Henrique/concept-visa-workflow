@@ -8,7 +8,10 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - Login com o e-mail e a senha da API. O token fica num cookie `httpOnly`: o navegador nunca o lê.
 - Rotas protegidas: sem sessão, a pessoa vai ao login e volta para onde ia depois de entrar.
 - Menu por perfil (leitor, atendente, admin). Esconder um botão não protege nada: quem decide é a API (401/403).
-- Início com um "cartão de embarque" por tipo de processo (em andamento e situações abertas).
+- Início com um "cartão de embarque" por tipo de processo (em andamento e situações abertas) e o **painel de
+  embarque**: as datas marcadas dos próximos 7 dias, no estilo do letreiro de partidas do aeroporto.
+- **Agenda**: calendário do mês com orientações, CASV, entrevistas, despachos e PF; filtro por tipo de
+  compromisso, setas do teclado para andar pelos dias e o painel do dia com o link de cada processo.
 - **Processos**: abas OBT/REN/PASS, filtros na URL (busca, situação, consulado, resultado, período de uma data),
   tabela paginada e **quadro** (kanban): arrastar um card muda a situação de verdade (mouse ou teclado), com
   atualização otimista; reabrir um concluído pede o motivo.
@@ -24,7 +27,7 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - Identidade Concept Vistos: logo em vetor, azul `#1d9d9d`, tinta `#050510`, papel `#f5f5f5`, tema claro e
   escuro, animações decorativas (avião, pins, carimbo) que respeitam "reduzir movimento".
 
-Próximas fases: agenda, início completo (painel de embarque), usuários e minha conta.
+Próximas fases: usuários e minha conta.
 
 ## Como rodar
 

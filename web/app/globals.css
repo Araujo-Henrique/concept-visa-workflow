@@ -188,6 +188,7 @@
   html:not([data-movimento="normal"]) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -196,5 +197,23 @@ html[data-movimento="reduzido"] *::before,
 html[data-movimento="reduzido"] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
   transition-duration: 0.01ms !important;
+}
+
+/* Painel de embarque do Início: cada linha "vira" como as plaquinhas do letreiro do aeroporto. */
+@keyframes virar-placa {
+  from {
+    opacity: 0;
+    transform: rotateX(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotateX(0);
+  }
+}
+.placa-letreiro {
+  transform-origin: top;
+  animation: virar-placa 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  animation-delay: var(--atraso, 0ms);
 }
