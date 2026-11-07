@@ -529,6 +529,27 @@ def test_painel_filtra_pelo_cliente(client):
     assert [l["cliente"] for l in linhas] == ["Ana Souza"]
 
 
+def test_orientacao_tem_os_status_novos_na_ordem_e_filtra_no_painel(client):
+    assert client.get("/referencias").json()["orientacao"] == [
+        "Pendente", "Opções enviadas", "Decidindo", "Opt A", "Escolheu padrão", "Agendada", "Fornecidas"]
+    ids = {}
+    for nome, orientacao in (("Cliente Enviadas", "Opções enviadas"), ("Cliente Decidindo", "Decidindo"),
+                             ("Cliente Padrao", "Escolheu padrão")):
+        ids[orientacao] = novo_obt(client, novo_cliente(client, nome)["id"], orientacao=orientacao)["id"]
+    novo_obt(client, novo_cliente(client, "Cliente Pendente")["id"])
+
+    linhas = client.get("/painel", params={"orientacao": "Escolheu padrão"}).json()
+    assert [l["processo_id"] for l in linhas] == [ids["Escolheu padrão"]]
+    assert linhas[0]["orientacao"] == "Escolheu padrão"
+    assert client.get("/painel", params={"orientacao": "Inventada"}).status_code == 422
+
+    # muda pelo PATCH; só "Agendada" exige data
+    resposta = client.patch(f"/processos-obt/{ids['Decidindo']}", json={"orientacao": "Opt A"})
+    assert resposta.status_code == 200 and resposta.json()["orientacao"] == "Opt A"
+    resposta = client.patch(f"/processos-obt/{ids['Escolheu padrão']}", json={"orientacao": "Agendada"})
+    assert resposta.status_code == 422
+
+
 def test_referencias_trazem_os_usuarios_ativos_para_orientacao(client, sessao, usuario_teste):
     from app.servicos.usuarios import criar_usuario
     inativo = criar_usuario(sessao, "Fora Daqui", "fora@exemplo.com", "leitor", "senha-bem-longa-1")

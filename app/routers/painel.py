@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import Date, func, literal, null, select, union_all
 
 from app.deps import Sessao
-from app.enums import Consulado, TipoProcesso
+from app.enums import Consulado, Orientacao, TipoProcesso
 from app.painel import painel
 from app.schemas.painel import AgendaItem, PainelOut, ResumoTipo, painel_adapter
 
@@ -27,6 +27,7 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
            data: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf"] | None = None,
            de: date | None = None, ate: date | None = None,
            despacho: Literal["pendente", "feito"] | None = None,  # REN: falta despachar / já despachado
+           orientacao: Orientacao | None = None,  # OBT: em que ponto está a orientação
            limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     """Visão geral dos processos, uma linha por processo (a view vw_painel_processos).
     O cabeçalho `X-Total-Count` traz o total com os mesmos filtros, para a tela paginar.
@@ -60,6 +61,8 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
         filtros += [painel.c.despachado_em.is_(None), painel.c.data_despacho.is_not(None)]
     elif despacho == "feito":
         filtros.append(painel.c.despachado_em.is_not(None))
+    if orientacao is not None:
+        filtros.append(painel.c.orientacao == orientacao.value)
 
     total = sessao.scalar(select(func.count()).select_from(painel).where(*filtros))
     response.headers["X-Total-Count"] = str(total)

@@ -29,7 +29,7 @@ class PainelOBT(PainelBase):
     data_casv: date | None
     data_entrevista: date | None
     codigo_rastreio: str | None
-    orientacao: str | None  # Opt A, Fornecidas, Agendada ou Pendente
+    orientacao: str | None  # um dos valores de app.enums.Orientacao
     orientacao_data: date | None
     orientacao_por: str | None  # vazio quando ninguém foi indicado (comum no histórico antigo)
 
