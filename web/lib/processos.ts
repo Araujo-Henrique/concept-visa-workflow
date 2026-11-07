@@ -90,8 +90,8 @@ export const CLASSES_DO_TOM: Record<Tom, string> = {
  */
 export const ORIENTACOES = [
   { valor: "Pendente", classes: "bg-muted text-muted-foreground", dica: "Opções ainda não enviadas" },
-  { valor: "Opções enviadas", classes: "bg-ceu-suave text-ceu", dica: "Recebeu as opções e não respondeu" },
-  { valor: "Decidindo", classes: "bg-lilas-suave text-lilas", dica: "Escolhendo entre a Opt A e a padrão" },
+  { valor: "Opções enviadas", classes: "bg-ceu-suave text-ceu", dica: "Recebeu as opções (Opt A ou padrão)" },
+  { valor: "Sem resposta", classes: "bg-lilas-suave text-lilas", dica: "Recebeu as opções e não respondeu" },
   {
     valor: "Opt A",
     classes: "bg-tinta text-papel dark:bg-papel dark:text-tinta",

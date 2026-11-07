@@ -106,7 +106,7 @@ describe("filtros da URL", () => {
   it("filtro de orientação só no OBT e só com os status conhecidos", () => {
     expect(lerFiltros({ tipo: "OBT", orientacao: "Escolheu padrão" }).orientacao).toBe("Escolheu padrão");
     expect(lerFiltros({ tipo: "OBT", orientacao: "Inventada" }).orientacao).toBeUndefined();
-    expect(lerFiltros({ tipo: "REN", orientacao: "Decidindo" }).orientacao).toBeUndefined();
+    expect(lerFiltros({ tipo: "REN", orientacao: "Sem resposta" }).orientacao).toBeUndefined();
     const f = lerFiltros({ tipo: "OBT", orientacao: "Opções enviadas" });
     expect(paramsDoPainel(f)).toMatchObject({ orientacao: "Opções enviadas" });
     expect(haFiltros(f)).toBe(true);
@@ -116,14 +116,14 @@ describe("filtros da URL", () => {
     expect(ORIENTACOES.map((o) => o.valor)).toEqual([
       "Pendente",
       "Opções enviadas",
-      "Decidindo",
+      "Sem resposta",
       "Opt A",
       "Escolheu padrão",
       "Agendada",
       "Fornecidas",
     ]);
     expect(new Set(ORIENTACOES.map((o) => o.classes)).size).toBe(ORIENTACOES.length);
-    expect(dadosDaOrientacao("Decidindo")?.dica).toMatch(/Opt A/);
+    expect(dadosDaOrientacao("Sem resposta")?.dica).toMatch(/não respondeu/);
     expect(dadosDaOrientacao("x")).toBeNull();
   });
 
