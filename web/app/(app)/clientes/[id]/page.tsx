@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { EditarCliente } from "@/components/clientes/controles";
+import { EditarCliente, ExcluirCliente } from "@/components/clientes/controles";
 import { SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +47,7 @@ async function Conteudo({ params }: { params: PageProps<"/clientes/[id]">["param
     usuarioAtual(),
   ]);
   const escreve = pode(usuario.perfil, "escrever");
+  const apaga = pode(usuario.perfil, "apagar"); // só admin
   const whatsapp = linkWhatsapp(cliente.telefone);
 
   return (
@@ -89,14 +90,19 @@ async function Conteudo({ params }: { params: PageProps<"/clientes/[id]">["param
             )}
           </div>
         </div>
-        {escreve && (
-          <div className="flex gap-2">
-            <EditarCliente cliente={cliente} />
-            <Button asChild>
-              <Link href={`/processos/novo?cliente=${cliente.id}`}>
-                <Plus className="size-4" /> Novo processo
-              </Link>
-            </Button>
+        {(escreve || apaga) && (
+          <div className="flex flex-wrap gap-2">
+            {apaga && <ExcluirCliente cliente={cliente} processos={processos.length} />}
+            {escreve && (
+              <>
+                <EditarCliente cliente={cliente} />
+                <Button asChild>
+                  <Link href={`/processos/novo?cliente=${cliente.id}`}>
+                    <Plus className="size-4" /> Novo processo
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         )}
       </header>

@@ -24,6 +24,7 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - **Busca global** (Ctrl+K): número do processo ou nome do cliente.
 - **Clientes**: lista em ordem alfabética com busca única (nome, e-mail ou telefone), cadastro e edição, e a
   ficha do cliente com os processos dele ("histórico de viagens"), telefone formatado e link do WhatsApp.
+  Admin pode excluir o cliente junto com os processos (confirma digitando o nome; não dá para desfazer).
 - **Novo processo**: assistente em cinco passos (cliente, tipo, dados, pessoas, embarque); dá para cadastrar o
   cliente no meio do caminho. Avisa as regras (consulado com data, orientação agendada com data) antes de enviar.
 - **Editar o processo** no passaporte: dados (só o que mudou vai para a API), pessoas (incluir, trocar o titular,
