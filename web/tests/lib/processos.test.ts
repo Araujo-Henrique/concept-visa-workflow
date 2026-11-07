@@ -92,6 +92,15 @@ describe("filtros da URL", () => {
     });
   });
 
+  it("filtro de despacho só no REN e só com os valores conhecidos", () => {
+    expect(lerFiltros({ tipo: "REN", despacho: "pendente" }).despacho).toBe("pendente");
+    expect(lerFiltros({ tipo: "REN", despacho: "talvez" }).despacho).toBeUndefined();
+    expect(lerFiltros({ tipo: "OBT", despacho: "feito" }).despacho).toBeUndefined();
+    expect(paramsDoPainel(lerFiltros({ tipo: "REN", despacho: "feito" }))).toMatchObject({
+      despacho: "feito",
+    });
+  });
+
   it("vira os parâmetros da API, com paginação", () => {
     const f = lerFiltros({ tipo: "OBT", cliente: "souza", resultado: "Negado", pagina: "3" });
     expect(paramsDoPainel(f)).toMatchObject({

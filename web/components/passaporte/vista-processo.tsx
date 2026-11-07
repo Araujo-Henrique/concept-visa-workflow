@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { FaixaDespacho } from "@/components/passaporte/despacho";
 import { EditarDados } from "@/components/passaporte/editar-dados";
 import { PaginaPessoas } from "@/components/passaporte/pagina-pessoas";
 import { PaginaDados, PaginaHistorico } from "@/components/passaporte/paginas";
@@ -16,7 +17,10 @@ export function VistaProcesso({
   eventos,
   referencias,
   permissoes,
+  hoje,
 }: {
+  /** "AAAA-MM-DD" de Brasília (vem do servidor) */
+  hoje: string;
   linha: LinhaPainel;
   detalhe: ProcessoDetalhe;
   eventos: Evento[];
@@ -49,6 +53,18 @@ export function VistaProcesso({
               acao={
                 permissoes.escrever && (
                   <EditarDados tipo={linha.tipo} detalhe={detalhe} referencias={referencias} />
+                )
+              }
+              extra={
+                linha.tipo === "REN" && (
+                  <FaixaDespacho
+                    processoId={linha.processo_id}
+                    prazo={linha.data_despacho}
+                    despachadoEm={linha.despachado_em}
+                    rastreio={linha.codigo_rastreio}
+                    hoje={hoje}
+                    podeMarcar={permissoes.escrever}
+                  />
                 )
               }
             />

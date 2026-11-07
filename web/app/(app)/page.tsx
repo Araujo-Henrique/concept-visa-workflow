@@ -6,8 +6,9 @@ import { DIAS_DO_PAINEL, PainelEmbarque } from "@/components/inicio/painel-embar
 import { Contador } from "@/components/movimento/contador";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hojeEmSP, somarDias } from "@/lib/agenda";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiLista } from "@/lib/api";
 import { emAndamento, rotuloSituacao, saudacao, situacoesAbertas, TIPOS } from "@/lib/formatos";
+import { urlDosFiltros } from "@/lib/processos";
 import { usuarioAtual } from "@/lib/sessao";
 import type { AgendaItem, Resumo, ResumoTipo, TipoProcesso } from "@/lib/tipos";
 
@@ -51,11 +52,20 @@ export default function Inicio() {
 async function Embarques() {
   await connection(); // "hoje" é da hora do pedido, não do build
   const hoje = hojeEmSP();
-  const itens = await apiGet<AgendaItem[]>("/painel/agenda", {
-    de: hoje,
-    ate: somarDias(hoje, DIAS_DO_PAINEL - 1),
-  });
-  return <PainelEmbarque itens={itens} hoje={hoje} />;
+  const ontem = somarDias(hoje, -1);
+  const [itens, atrasados] = await Promise.all([
+    apiGet<AgendaItem[]>("/painel/agenda", { de: hoje, ate: somarDias(hoje, DIAS_DO_PAINEL - 1) }),
+    // só o total importa (X-Total-Count): despachos com prazo até ontem e ainda não feitos
+    apiLista("/painel", { tipo: "REN", despacho: "pendente", data: "despacho", ate: ontem, limit: 1 }),
+  ]);
+  return (
+    <PainelEmbarque
+      itens={itens}
+      hoje={hoje}
+      atrasados={atrasados.total ?? 0}
+      linkAtrasados={urlDosFiltros({ tipo: "REN", despacho: "pendente", data: "despacho", ate: ontem })}
+    />
+  );
 }
 
 async function Saudacao() {

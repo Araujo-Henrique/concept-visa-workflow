@@ -5,11 +5,14 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-import { SeloSituacao } from "@/components/processos/selos";
+import { SeloDespacho, SeloSituacao } from "@/components/processos/selos";
 import {
   agruparPorDia,
   CABECALHO_DA_SEMANA,
   contarPorEvento,
+  estadoDoDespacho,
+  estadoDosDespachos,
+  ESTADOS_DO_DESPACHO,
   EVENTOS,
   ORDEM_DOS_EVENTOS,
   rotuloDoDia,
@@ -29,6 +32,11 @@ type Props = {
 };
 
 const MAX_LINHAS_NA_CELULA = 3;
+const COR_DA_LEGENDA = {
+  pendente: "bg-muted-foreground",
+  feito: "bg-sucesso",
+  atrasado: "bg-perigo",
+} as const;
 
 /** Calendário do mês: um clique (ou as setas do teclado) no dia abre os compromissos dele ao lado. */
 export function Calendario({ mes, hoje, dias, itens }: Props) {
@@ -107,6 +115,7 @@ export function Calendario({ mes, hoje, dias, itens }: Props) {
               const doDia = porDia.get(dia) ?? [];
               const contagem = contarPorEvento(doDia);
               const tipos = ORDEM_DOS_EVENTOS.filter((e) => contagem[e]);
+              const despachos = estadoDosDespachos(doDia, hoje);
               const foraDoMes = !dia.startsWith(mes);
               const eHoje = dia === hoje;
               const eSelecionado = dia === selecionado;
@@ -158,7 +167,9 @@ export function Calendario({ mes, hoje, dias, itens }: Props) {
                         key={e}
                         className={cn(
                           "flex items-center justify-between gap-1 truncate rounded px-1.5 py-px text-[11px] font-semibold",
-                          EVENTOS[e].chip,
+                          e === "despacho" && despachos && despachos !== "pendente"
+                            ? ESTADOS_DO_DESPACHO[despachos].classes
+                            : EVENTOS[e].chip,
                         )}
                       >
                         <span className="truncate">{EVENTOS[e].rotulo}</span>
@@ -176,6 +187,15 @@ export function Calendario({ mes, hoje, dias, itens }: Props) {
             })}
           </div>
         </div>
+        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span className="font-medium">Despacho:</span>
+          {(["pendente", "feito", "atrasado"] as const).map((estado) => (
+            <span key={estado} className="inline-flex items-center gap-1.5">
+              <span className={cn("size-2.5 rounded-full", COR_DA_LEGENDA[estado])} aria-hidden />
+              {ESTADOS_DO_DESPACHO[estado].rotulo}
+            </span>
+          ))}
+        </p>
       </div>
 
       <PainelDoDia dia={selecionado} hoje={hoje} itens={porDia.get(selecionado) ?? []} />
@@ -239,7 +259,14 @@ function PainelDoDia({ dia, hoje, itens }: { dia: string; hoje: string; itens: A
                     </span>
                     <span className="mt-1.5 block truncate font-semibold">{item.cliente}</span>
                     <span className="mt-1 flex items-center justify-between gap-2">
-                      <SeloSituacao situacao={item.situacao} />
+                      {item.evento === "despacho" ? (
+                        <SeloDespacho
+                          estado={estadoDoDespacho(item.data, item.despachado_em, hoje)}
+                          despachadoEm={item.despachado_em}
+                        />
+                      ) : (
+                        <SeloSituacao situacao={item.situacao} />
+                      )}
                       {item.consulado && (
                         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                           <MapPin className="size-3" aria-hidden />

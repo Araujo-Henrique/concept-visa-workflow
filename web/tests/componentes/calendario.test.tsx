@@ -16,6 +16,7 @@ const item = (data: string, evento: AgendaItem["evento"], id: number, cliente: s
   cliente,
   situacao: "Cadastro",
   consulado: "SP",
+  despachado_em: null,
 });
 
 const itens = [

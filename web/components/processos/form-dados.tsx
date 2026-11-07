@@ -58,6 +58,12 @@ export function FormDados({
         <CampoSelecao rotulo="Rascunho" opcoes={opcoes(referencias.rascunho)} {...campo("status_rascunho")} />
         <CampoTexto rotulo="Endereço" className="sm:col-span-2" {...campo("endereco")} />
         <CampoTexto rotulo="Código de rastreio" {...campo("codigo_rastreio")} />
+        <CampoTexto
+          rotulo="Despachado em"
+          tipo="date"
+          dica="Vazio = ainda falta despachar."
+          {...campo("despachado_em")}
+        />
         <CampoTexto rotulo="Observação" multilinha className="sm:col-span-2" {...campo("observacao")} />
       </div>
     );

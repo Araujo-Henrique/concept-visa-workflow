@@ -1,4 +1,4 @@
-import { ArrowRight, PlaneTakeoff } from "lucide-react";
+import { ArrowRight, Check, PlaneTakeoff, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
@@ -17,7 +17,18 @@ const COLUNAS =
  * Painel de embarque, como o letreiro de partidas do aeroporto: os próximos compromissos da semana.
  * As linhas "viram" como as plaquinhas do letreiro ao chegar (só CSS, desligado em "reduzir movimento").
  */
-export function PainelEmbarque({ itens, hoje }: { itens?: AgendaItem[]; hoje?: string }) {
+export function PainelEmbarque({
+  itens,
+  hoje,
+  atrasados = 0,
+  linkAtrasados,
+}: {
+  itens?: AgendaItem[];
+  hoje?: string;
+  /** despachos com o prazo vencido e ainda não feitos */
+  atrasados?: number;
+  linkAtrasados?: string;
+}) {
   const contagem = itens ? contarPorEvento(itens) : {};
   const deHoje = itens && hoje ? itens.filter((i) => i.data.startsWith(hoje)).length : 0;
   return (
@@ -58,6 +69,17 @@ export function PainelEmbarque({ itens, hoje }: { itens?: AgendaItem[]; hoje?: s
           </ul>
         )}
       </header>
+
+      {atrasados > 0 && linkAtrasados && (
+        <Link
+          href={linkAtrasados}
+          className="flex items-center gap-2 border-b border-white/10 bg-perigo/15 px-5 py-2.5 text-sm font-semibold text-[#ff8a98] transition-colors hover:bg-perigo/25 focus-visible:bg-perigo/25 focus-visible:outline-none"
+        >
+          <TriangleAlert className="size-4" aria-hidden />
+          {atrasados === 1 ? "1 despacho atrasado" : `${atrasados} despachos atrasados`}
+          <ArrowRight className="ml-auto size-3.5" aria-hidden />
+        </Link>
+      )}
 
       <div
         className={cn(
@@ -123,7 +145,15 @@ export function PainelEmbarque({ itens, hoje }: { itens?: AgendaItem[]; hoje?: s
                   </span>
                   <span className="text-right font-bold sm:text-left">{item.consulado ?? "—"}</span>
                   <span className="hidden truncate text-xs text-papel/70 sm:block">
-                    {rotuloSituacao(item.situacao)}
+                    {item.evento === "despacho" && item.despachado_em ? (
+                      <span className="inline-flex items-center gap-1 font-bold text-[#6ee0a8]">
+                        <Check className="size-3.5" aria-hidden /> Despachado
+                      </span>
+                    ) : item.evento === "despacho" ? (
+                      "A despachar"
+                    ) : (
+                      rotuloSituacao(item.situacao)
+                    )}
                   </span>
                 </Link>
               </li>

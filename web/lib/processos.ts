@@ -136,6 +136,8 @@ export type Filtros = {
   data?: DataFiltravel;
   de?: string;
   ate?: string;
+  /** só REN: falta despachar ou já despachado */
+  despacho?: "pendente" | "feito";
   pagina: number;
 };
 
@@ -151,6 +153,7 @@ export function lerFiltros(busca: Busca): Filtros {
   const de = um(busca.de);
   const ate = um(busca.ate);
   const pagina = Number(um(busca.pagina));
+  const despacho = um(busca.despacho);
   return {
     tipo,
     visao: um(busca.visao) === "quadro" ? "quadro" : "tabela",
@@ -161,6 +164,7 @@ export function lerFiltros(busca: Busca): Filtros {
     data: dataValida,
     de: dataValida && de && DATA_ISO.test(de) ? de : undefined,
     ate: dataValida && ate && DATA_ISO.test(ate) ? ate : undefined,
+    despacho: tipo === "REN" && (despacho === "pendente" || despacho === "feito") ? despacho : undefined,
     pagina: Number.isInteger(pagina) && pagina > 0 ? pagina : 1,
   };
 }
@@ -176,6 +180,7 @@ export function paramsDoPainel(f: Filtros, porPagina = POR_PAGINA) {
     data: f.de || f.ate ? f.data : undefined,
     de: f.de,
     ate: f.ate,
+    despacho: f.despacho,
     limit: porPagina,
     offset: (f.pagina - 1) * porPagina,
   };
@@ -194,7 +199,7 @@ export function urlDosFiltros(f: Partial<Filtros>): string {
 }
 
 export function haFiltros(f: Filtros): boolean {
-  return Boolean(f.situacao || f.consulado || f.resultado || f.cliente || f.de || f.ate);
+  return Boolean(f.situacao || f.consulado || f.resultado || f.cliente || f.de || f.ate || f.despacho);
 }
 
 // ---------------------------------------------------------------- passaporte

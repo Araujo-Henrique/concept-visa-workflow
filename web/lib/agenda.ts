@@ -21,7 +21,13 @@ export const EVENTOS: Record<EventoAgenda, { rotulo: string; curto: string; pont
     ponto: "bg-tinta dark:bg-papel",
     chip: "bg-secondary text-secondary-foreground",
   },
-  despacho: { rotulo: "Despacho", curto: "DESP", ponto: "bg-sucesso", chip: "bg-sucesso-suave text-sucesso" },
+  // neutro de propósito: o verde fica para "despachado" e o vermelho para "atrasado"
+  despacho: {
+    rotulo: "Despacho",
+    curto: "DESP",
+    ponto: "bg-muted-foreground",
+    chip: "bg-muted text-foreground",
+  },
   pf: {
     rotulo: "Polícia Federal",
     curto: "PF",
@@ -160,4 +166,38 @@ export function tituloDoDia(dia: string): string {
 /** Link da agenda (sem o mês atual na URL, para ficar curta). */
 export function urlDaAgenda(mes: string, hoje: string): string {
   return mes === hoje.slice(0, 7) ? "/agenda" : `/agenda?mes=${mes}`;
+}
+
+// ---------------------------------------------------------------- despacho (REN)
+
+export type EstadoDespacho = "feito" | "atrasado" | "pendente";
+
+/**
+ * O prazo do despacho é CASV - 7 (calculado pelo banco). Despachado = feito; sem despacho e com o prazo
+ * já passado = atrasado (no próprio dia do prazo ainda está em dia). Sem prazo nem despacho: nada a dizer.
+ */
+export function estadoDoDespacho(
+  prazo: string | null | undefined,
+  despachadoEm: string | null | undefined,
+  hoje: string,
+): EstadoDespacho | null {
+  if (despachadoEm) return "feito";
+  if (!prazo) return null;
+  return prazo.slice(0, 10) < hoje ? "atrasado" : "pendente";
+}
+
+export const ESTADOS_DO_DESPACHO: Record<EstadoDespacho, { rotulo: string; classes: string }> = {
+  feito: { rotulo: "Despachado", classes: "bg-sucesso-suave text-sucesso" },
+  atrasado: { rotulo: "Atrasado", classes: "bg-perigo-suave text-perigo" },
+  pendente: { rotulo: "A despachar", classes: "bg-alerta-suave text-alerta" },
+};
+
+/** Estado dos despachos de um dia (o pior deles): algum atrasado > algum a despachar > todos feitos. */
+export function estadoDosDespachos(itens: AgendaItem[], hoje: string): EstadoDespacho | null {
+  const estados = itens
+    .filter((i) => i.evento === "despacho")
+    .map((i) => estadoDoDespacho(i.data, i.despachado_em, hoje));
+  if (estados.includes("atrasado")) return "atrasado";
+  if (estados.includes("pendente")) return "pendente";
+  return estados.length ? "feito" : null;
 }

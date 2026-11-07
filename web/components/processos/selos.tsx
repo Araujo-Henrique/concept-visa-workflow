@@ -1,5 +1,14 @@
+import { Check, TriangleAlert } from "lucide-react";
+
+import { ESTADOS_DO_DESPACHO, type EstadoDespacho } from "@/lib/agenda";
 import { rotuloSituacao } from "@/lib/formatos";
-import { CLASSES_DO_TOM, rotuloResultado, tomDaSituacao, tomDoResultado } from "@/lib/processos";
+import {
+  CLASSES_DO_TOM,
+  formatarData,
+  rotuloResultado,
+  tomDaSituacao,
+  tomDoResultado,
+} from "@/lib/processos";
 import { cn } from "@/lib/utils";
 
 const BASE =
@@ -29,6 +38,28 @@ export function SeloConsulado({ consulado }: { consulado: string | null | undefi
   return (
     <span className="rounded-md border px-1.5 py-0.5 font-heading text-[11px] font-bold tracking-widest">
       {consulado}
+    </span>
+  );
+}
+
+/** Estado do despacho de um REN: feito (com a data), atrasado ou a despachar. */
+export function SeloDespacho({
+  estado,
+  despachadoEm,
+  className,
+}: {
+  estado: EstadoDespacho | null;
+  despachadoEm?: string | null;
+  className?: string;
+}) {
+  if (!estado) return null;
+  const { rotulo, classes } = ESTADOS_DO_DESPACHO[estado];
+  return (
+    <span className={cn(BASE, classes, className)}>
+      {estado === "feito" ? <Check className="size-3" aria-hidden /> : null}
+      {estado === "atrasado" ? <TriangleAlert className="size-3" aria-hidden /> : null}
+      {rotulo}
+      {estado === "feito" && despachadoEm ? ` em ${formatarData(despachadoEm)}` : null}
     </span>
   );
 }

@@ -2,6 +2,8 @@ import {
   agruparPorDia,
   contarPorEvento,
   diasEntre,
+  estadoDoDespacho,
+  estadoDosDespachos,
   gradeDoMes,
   hojeEmSP,
   lerMes,
@@ -63,6 +65,7 @@ describe("compromissos", () => {
     cliente: "Cliente",
     situacao: "Cadastro",
     consulado: "SP",
+    despachado_em: null,
   });
 
   it("agrupa por dia e conta por tipo", () => {
@@ -86,5 +89,36 @@ describe("compromissos", () => {
   it("link da agenda sem o mês atual", () => {
     expect(urlDaAgenda("2026-11", "2026-11-07")).toBe("/agenda");
     expect(urlDaAgenda("2026-12", "2026-11-07")).toBe("/agenda?mes=2026-12");
+  });
+});
+
+describe("despacho", () => {
+  const hoje = "2026-11-07";
+  it("feito, atrasado (prazo já passou) ou a despachar (o próprio dia ainda está em dia)", () => {
+    expect(estadoDoDespacho("2026-11-01", "2026-10-30", hoje)).toBe("feito");
+    expect(estadoDoDespacho("2026-11-06", null, hoje)).toBe("atrasado");
+    expect(estadoDoDespacho("2026-11-07", null, hoje)).toBe("pendente");
+    expect(estadoDoDespacho(null, null, hoje)).toBeNull();
+  });
+
+  it("o dia mostra o pior estado dos despachos", () => {
+    const desp = (data: string, feito: string | null): AgendaItem => ({
+      data,
+      evento: "despacho",
+      processo_id: 1,
+      tipo: "REN",
+      cliente: "C",
+      situacao: "Cadastro",
+      consulado: "SP",
+      despachado_em: feito,
+    });
+    expect(estadosDe([desp("2026-11-05", "2026-11-04"), desp("2026-11-05", null)])).toBe("atrasado");
+    expect(estadosDe([desp("2026-11-09", "2026-11-04"), desp("2026-11-09", null)])).toBe("pendente");
+    expect(estadosDe([desp("2026-11-09", "2026-11-04")])).toBe("feito");
+    expect(estadosDe([])).toBeNull();
+
+    function estadosDe(itens: AgendaItem[]) {
+      return estadoDosDespachos(itens, hoje);
+    }
   });
 });

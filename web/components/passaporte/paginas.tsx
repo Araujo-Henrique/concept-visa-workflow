@@ -80,7 +80,7 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
         { rotulo: "Consulado", valor: texto(d.consulado) },
         { rotulo: "Documentos", valor: texto(d.docs) },
         { rotulo: "CASV", valor: data(d.data_casv) },
-        { rotulo: "Despacho", valor: data(d.data_despacho) },
+        { rotulo: "Prazo do despacho", valor: data(d.data_despacho) },
         { rotulo: "Rascunho", valor: texto(d.status_rascunho) },
         { rotulo: "Rastreio", valor: texto(d.codigo_rastreio) },
         { rotulo: "Endereço", valor: texto(d.endereco), largo: true },
@@ -97,10 +97,13 @@ export function PaginaDados({
   linha,
   detalhe,
   acao,
+  extra,
 }: {
   linha: LinhaPainel;
   detalhe: ProcessoDetalhe;
   acao?: ReactNode;
+  /** faixa abaixo dos campos (o despacho do REN) */
+  extra?: ReactNode;
 }) {
   const [l1, l2] = linhaDeMaquina(linha.tipo, linha.processo_id, linha.cliente);
   const campos: Campo[] = [
@@ -133,6 +136,7 @@ export function PaginaDados({
             </div>
           ))}
         </dl>
+        {extra}
         {detalhe.observacao && (
           <div className="mt-6 rounded-xl border border-dashed bg-background/60 p-3">
             <p className="text-[10px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">

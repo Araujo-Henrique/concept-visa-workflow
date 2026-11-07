@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Check, Users } from "lucide-react";
 import Link from "next/link";
 
 import { SeloConsulado, SeloResultado, SeloSituacao } from "@/components/processos/selos";
@@ -63,6 +63,9 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
               {datasPrincipais(l).map((d) => (
                 <td key={d.rotulo} className="px-4 py-3 tabular-nums">
                   {formatarData(d.valor)}
+                  {d.rotulo === "Despacho" && l.tipo === "REN" && l.despachado_em && (
+                    <Check className="ml-1 inline size-3.5 text-sucesso" aria-label="despachado" />
+                  )}
                 </td>
               ))}
               <td className="px-4 py-3">

@@ -66,7 +66,16 @@ export const CAMPOS_DO_TIPO: Record<TipoProcesso, string[]> = {
     "codigo_rastreio",
     "observacao",
   ],
-  REN: ["consulado", "data_casv", "docs", "status_rascunho", "endereco", "codigo_rastreio", "observacao"],
+  REN: [
+    "consulado",
+    "data_casv",
+    "docs",
+    "status_rascunho",
+    "endereco",
+    "codigo_rastreio",
+    "despachado_em",
+    "observacao",
+  ],
   PASS: ["data_pf", "prazo_pf", "observacao"],
 };
 
@@ -77,6 +86,7 @@ const CAMPOS_DATA = new Set([
   "orientacao_data",
   "data_pf",
   "prazo_pf",
+  "despachado_em",
 ]);
 
 /** Valores iniciais de um processo novo (os mesmos padrões da API). */

@@ -50,6 +50,8 @@ export type LinhaREN = LinhaBase & {
   consulado: string | null;
   data_casv: string | null;
   data_despacho: string | null;
+  /** quando foi despachado de verdade; vazio = ainda falta despachar */
+  despachado_em: string | null;
   codigo_rastreio: string | null;
 };
 export type LinhaPASS = LinhaBase & { tipo: "PASS"; data_pf: string | null; prazo_pf: string | null };
@@ -133,4 +135,6 @@ export type AgendaItem = {
   cliente: string;
   situacao: string;
   consulado: string | null;
+  /** só no evento "despacho": quando foi feito */
+  despachado_em: string | null;
 };

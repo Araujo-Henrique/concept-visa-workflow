@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { VistaProcesso } from "@/components/passaporte/vista-processo";
 import { SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hojeEmSP } from "@/lib/agenda";
 import { apiGet, apiLista } from "@/lib/api";
 import { TIPOS } from "@/lib/formatos";
 import { pode } from "@/lib/permissoes";
@@ -74,6 +75,7 @@ async function Conteudo({ params }: { params: PageProps<"/processos/[id]">["para
       </header>
 
       <VistaProcesso
+        hoje={hojeEmSP()}
         linha={linha}
         detalhe={detalhe}
         eventos={eventos}

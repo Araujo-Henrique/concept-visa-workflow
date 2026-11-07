@@ -129,6 +129,17 @@ export function BarraFiltros({ filtros, situacoes, consulados, totais }: Props) 
             aoMudar={(consulado) => aplicar({ consulado })}
           />
         )}
+        {filtros.tipo === "REN" && (
+          <Filtro
+            rotulo="Despacho"
+            valor={filtros.despacho}
+            opcoes={[
+              ["pendente", "A despachar"],
+              ["feito", "Despachado"],
+            ]}
+            aoMudar={(despacho) => aplicar({ despacho: despacho as Filtros["despacho"] })}
+          />
+        )}
         <Filtro
           rotulo="Resultado"
           valor={filtros.resultado}
