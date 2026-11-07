@@ -68,9 +68,10 @@ Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a docum
 | Solicitantes | `/processos/{id}/solicitantes`, `/solicitantes/{id}`, `/solicitantes/{id}/titular` |
 | DS-160 | `/solicitantes/{id}/formularios-ds160`, `/formularios-ds160/{id}` |
 | Workflow | `POST /processos/{id}/situacao`, `GET /processos/{id}/eventos` |
-| Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`). Total no cabeçalho `X-Total-Count`; período por data com `data` (casv, entrevista, orientacao, despacho, pf, prazo_pf) + `de`/`ate`; no REN, `despacho=pendente` ou `feito` |
+| Painel | `GET /painel`: uma linha por processo, como a planilha (view `vw_painel_processos`). Total no cabeçalho `X-Total-Count`; período por data com `data` (casv, entrevista, orientacao, despacho, pf, prazo_pf) + `de`/`ate`; no REN, `despacho=pendente` ou `feito`; no OBT, `orientacao=` um dos status |
 | Resumo e agenda | `GET /painel/resumo` (contagens por tipo, situação e resultado), `GET /painel/agenda?de=&ate=` (datas do período, até 92 dias; o despacho traz `despachado_em`) |
 | Despacho (REN) | `data_despacho` é o prazo, calculado pelo banco (CASV − 7). `despachado_em` é quando foi despachado de verdade (vazio = falta despachar; não aceita data no futuro). A migration 0007 marcou os REN já concluídos do histórico |
+| Orientação (OBT) | Na ordem do caminho: Pendente, Opções enviadas (recebeu e não respondeu), Decidindo (entre a Opt A e a padrão), Opt A, Escolheu padrão (sem data ainda), Agendada (exige data) e Fornecidas. Os três do meio vieram na migration 0008 |
 | Referências | `GET /referencias`: situações por tipo, consulados e demais valores válidos (para filtros e formulários) |
 
 O front (Next.js) fica em [web/](web/README.md). Para ligar a API e o front juntos: `cd web` e `npm run dev`.
