@@ -82,6 +82,36 @@ export const CLASSES_DO_TOM: Record<Tom, string> = {
   parcial: "bg-alerta-suave text-alerta",
 };
 
+// ---------------------------------------------------------------- orientação (OBT)
+
+/**
+ * Status da orientação, na ordem do caminho, cada um com a sua cor (como a equipe fazia na planilha).
+ * Os valores são os da API (app/enums.py, Orientacao).
+ */
+export const ORIENTACOES = [
+  { valor: "Pendente", classes: "bg-muted text-muted-foreground", dica: "Opções ainda não enviadas" },
+  { valor: "Opções enviadas", classes: "bg-ceu-suave text-ceu", dica: "Recebeu as opções e não respondeu" },
+  { valor: "Decidindo", classes: "bg-lilas-suave text-lilas", dica: "Escolhendo entre a Opt A e a padrão" },
+  {
+    valor: "Opt A",
+    classes: "bg-tinta text-papel dark:bg-papel dark:text-tinta",
+    dica: "Escolheu a Opt A",
+  },
+  { valor: "Escolheu padrão", classes: "bg-alerta-suave text-alerta", dica: "Falta agendar a orientação" },
+  {
+    valor: "Agendada",
+    classes: "bg-marca-suave text-accent-foreground",
+    dica: "Orientação com data marcada",
+  },
+  { valor: "Fornecidas", classes: "bg-sucesso-suave text-sucesso", dica: "Orientação feita" },
+] as const;
+
+export type Orientacao = (typeof ORIENTACOES)[number]["valor"];
+
+export function dadosDaOrientacao(valor: string | null | undefined) {
+  return ORIENTACOES.find((o) => o.valor === valor) ?? null;
+}
+
 // ---------------------------------------------------------------- datas que importam em cada tipo
 
 export type DataDoProcesso = { rotulo: string; valor: string | null };
@@ -138,6 +168,8 @@ export type Filtros = {
   ate?: string;
   /** só REN: falta despachar ou já despachado */
   despacho?: "pendente" | "feito";
+  /** só OBT: em que ponto está a orientação */
+  orientacao?: Orientacao;
   pagina: number;
 };
 
@@ -154,6 +186,7 @@ export function lerFiltros(busca: Busca): Filtros {
   const ate = um(busca.ate);
   const pagina = Number(um(busca.pagina));
   const despacho = um(busca.despacho);
+  const orientacao = dadosDaOrientacao(um(busca.orientacao))?.valor;
   return {
     tipo,
     visao: um(busca.visao) === "quadro" ? "quadro" : "tabela",
@@ -165,6 +198,7 @@ export function lerFiltros(busca: Busca): Filtros {
     de: dataValida && de && DATA_ISO.test(de) ? de : undefined,
     ate: dataValida && ate && DATA_ISO.test(ate) ? ate : undefined,
     despacho: tipo === "REN" && (despacho === "pendente" || despacho === "feito") ? despacho : undefined,
+    orientacao: tipo === "OBT" ? orientacao : undefined,
     pagina: Number.isInteger(pagina) && pagina > 0 ? pagina : 1,
   };
 }
@@ -181,6 +215,7 @@ export function paramsDoPainel(f: Filtros, porPagina = POR_PAGINA) {
     de: f.de,
     ate: f.ate,
     despacho: f.despacho,
+    orientacao: f.orientacao,
     limit: porPagina,
     offset: (f.pagina - 1) * porPagina,
   };
@@ -199,7 +234,9 @@ export function urlDosFiltros(f: Partial<Filtros>): string {
 }
 
 export function haFiltros(f: Filtros): boolean {
-  return Boolean(f.situacao || f.consulado || f.resultado || f.cliente || f.de || f.ate || f.despacho);
+  return Boolean(
+    f.situacao || f.consulado || f.resultado || f.cliente || f.de || f.ate || f.despacho || f.orientacao,
+  );
 }
 
 // ---------------------------------------------------------------- passaporte

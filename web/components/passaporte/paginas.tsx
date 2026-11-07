@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 import { Simbolo } from "@/components/marca/simbolo";
-import { SeloSituacao } from "@/components/processos/selos";
+import { SeloOrientacao, SeloSituacao } from "@/components/processos/selos";
 import { rotuloSituacao, TIPOS } from "@/lib/formatos";
 import { formatarTelefone } from "@/lib/formularios";
 import { dataEHora, formatarData, inclinacaoDoCarimbo, linhaDeMaquina } from "@/lib/processos";
@@ -70,7 +70,10 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
         { rotulo: "Entrevista", valor: data(d.data_entrevista) },
         { rotulo: "Vencimento da taxa", valor: data(d.data_vencimento_taxa) },
         { rotulo: "Rascunho", valor: texto(d.status_rascunho) },
-        { rotulo: "Orientação", valor: texto(d.orientacao) },
+        {
+          rotulo: "Orientação",
+          valor: <SeloOrientacao orientacao={typeof d.orientacao === "string" ? d.orientacao : null} />,
+        },
         { rotulo: "Data da orientação", valor: data(d.orientacao_data) },
         { rotulo: "Orientado por", valor: texto(linha.orientacao_por) },
         { rotulo: "Rastreio", valor: texto(d.codigo_rastreio) },

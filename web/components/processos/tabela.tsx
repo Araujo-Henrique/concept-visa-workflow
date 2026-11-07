@@ -1,7 +1,7 @@
 import { Check, Users } from "lucide-react";
 import Link from "next/link";
 
-import { SeloConsulado, SeloResultado, SeloSituacao } from "@/components/processos/selos";
+import { SeloConsulado, SeloOrientacao, SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { datasPrincipais, formatarData, formatarDataCurta } from "@/lib/processos";
 import type { LinhaPainel, TipoProcesso } from "@/lib/tipos";
 
@@ -9,6 +9,7 @@ import type { LinhaPainel, TipoProcesso } from "@/lib/tipos";
 export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo: TipoProcesso }) {
   if (linhas.length === 0) return <SemResultado />;
   const comConsulado = tipo !== "PASS";
+  const comOrientacao = tipo === "OBT";
   const rotulosDatas = datasPrincipais(linhas[0]).map((d) => d.rotulo);
 
   return (
@@ -19,6 +20,7 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
             <th className="px-4 py-3 font-medium">Nº</th>
             <th className="px-4 py-3 font-medium">Cliente</th>
             <th className="px-4 py-3 font-medium">Situação</th>
+            {comOrientacao && <th className="px-4 py-3 font-medium">Orientação</th>}
             {comConsulado && <th className="px-4 py-3 font-medium">Consulado</th>}
             {rotulosDatas.map((r) => (
               <th key={r} className="px-4 py-3 font-medium">
@@ -55,6 +57,11 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
               <td className="px-4 py-3">
                 <SeloSituacao situacao={l.situacao} />
               </td>
+              {comOrientacao && (
+                <td className="px-4 py-3">
+                  <SeloOrientacao orientacao={l.tipo === "OBT" ? l.orientacao : null} />
+                </td>
+              )}
               {comConsulado && (
                 <td className="px-4 py-3">
                   <SeloConsulado consulado={"consulado" in l ? l.consulado : null} />

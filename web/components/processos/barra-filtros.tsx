@@ -11,6 +11,7 @@ import {
   DATAS_DO_TIPO,
   DATAS_FILTRAVEIS,
   haFiltros,
+  ORIENTACOES,
   rotuloResultado,
   urlDosFiltros,
   type DataFiltravel,
@@ -127,6 +128,14 @@ export function BarraFiltros({ filtros, situacoes, consulados, totais }: Props) 
             valor={filtros.consulado}
             opcoes={consulados.map((c) => [c, c])}
             aoMudar={(consulado) => aplicar({ consulado })}
+          />
+        )}
+        {filtros.tipo === "OBT" && (
+          <Filtro
+            rotulo="Orientação"
+            valor={filtros.orientacao}
+            opcoes={ORIENTACOES.map((o) => [o.valor, o.valor])}
+            aoMudar={(orientacao) => aplicar({ orientacao: orientacao as Filtros["orientacao"] })}
           />
         )}
         {filtros.tipo === "REN" && (

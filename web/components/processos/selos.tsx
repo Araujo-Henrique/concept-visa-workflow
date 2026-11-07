@@ -4,6 +4,7 @@ import { ESTADOS_DO_DESPACHO, type EstadoDespacho } from "@/lib/agenda";
 import { rotuloSituacao } from "@/lib/formatos";
 import {
   CLASSES_DO_TOM,
+  dadosDaOrientacao,
   formatarData,
   rotuloResultado,
   tomDaSituacao,
@@ -60,6 +61,18 @@ export function SeloDespacho({
       {estado === "atrasado" ? <TriangleAlert className="size-3" aria-hidden /> : null}
       {rotulo}
       {estado === "feito" && despachadoEm ? ` em ${formatarData(despachadoEm)}` : null}
+    </span>
+  );
+}
+
+/** Orientação do OBT com a cor do status (o nome sempre aparece: a cor só ajuda a achar). */
+export function SeloOrientacao({ orientacao, className }: { orientacao: string | null; className?: string }) {
+  const dados = dadosDaOrientacao(orientacao);
+  if (!dados) return <span className="text-muted-foreground">{orientacao || "—"}</span>;
+  return (
+    <span className={cn(BASE, dados.classes, className)} title={dados.dica}>
+      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+      {dados.valor}
     </span>
   );
 }
