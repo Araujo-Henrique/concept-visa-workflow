@@ -2,11 +2,11 @@ import { ANEL, SETA } from "@/components/marca/simbolo";
 import { cn } from "@/lib/utils";
 
 /**
- * Nome "CONCEPT VISTOS" como na logo oficial: o O de CONCEPT é o próprio símbolo (pin) deitado, apontando
+ * Nome "CONCEPT VISTOS" como na logo oficial: o C inicial de CONCEPT é o próprio símbolo (pin) deitado, apontando
  * para a direita (anel na cor do texto, "V" azul na abertura); o O final de VISTOS é um globo azul com avião.
  * Texto real (acessível e nítido em qualquer tamanho).
  */
-function OSimbolo() {
+function CSimbolo() {
   // mesma geometria do símbolo (viewBox 610 x 725), girada -90°: (x, y) -> (y, -x)
   return (
     <svg
@@ -50,8 +50,8 @@ export function Logotipo({ className, claro = false, empilhado = true }: Props) 
       aria-label="Concept Vistos"
     >
       <span className={claro ? "text-papel" : "text-tinta dark:text-papel"} aria-hidden>
-        C<OSimbolo />
-        NCEPT
+        <CSimbolo />
+        ONCEPT
       </span>
       <span className="text-marca" aria-hidden>
         VIST
