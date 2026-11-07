@@ -1,7 +1,10 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app import seguranca
-from app.deps import Sessao, UsuarioAtual, usuario_atual
+from app.deps import Sessao, UsuarioAtual, _esquema, usuario_atual
 from app.schemas.auth import Login, Token, UsuarioOut
 from app.schemas.usuario import TrocaDeSenha
 from app.servicos.usuarios import trocar_propria_senha
@@ -32,6 +35,19 @@ def login(dados: Login, sessao: Sessao):
 @router.get("/eu", response_model=UsuarioOut, dependencies=[Depends(usuario_atual)])
 def quem_sou_eu(usuario: UsuarioAtual):
     return UsuarioOut.de(usuario)
+
+
+@router.post("/renovar", response_model=Token)
+def renovar(usuario: UsuarioAtual, credenciais: Annotated[HTTPAuthorizationCredentials, Depends(_esquema)]):
+    """Sessão deslizante: troca o token atual (ainda válido) por um novo com a validade cheia, enquanto a
+    pessoa usa o sistema. Usuário desativado já para no usuario_atual (403). Passado o teto da sessão
+    (JWT_SESSAO_MAXIMA_HORAS desde o login), responde 401 e é preciso entrar de novo."""
+    renovado = seguranca.renovar_token(credenciais.credentials)
+    if renovado is None:
+        raise HTTPException(status_code=401, detail="A sessão chegou ao limite. Entre de novo",
+                            headers={"WWW-Authenticate": "Bearer"})
+    token, minutos = renovado
+    return Token(access_token=token, expira_em_minutos=minutos)
 
 
 @router.post("/senha", status_code=204)

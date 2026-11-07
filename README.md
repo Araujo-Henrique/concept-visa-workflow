@@ -101,6 +101,9 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
 - A senha vira hash argon2 (com sal) e nunca é guardada. Mínimo de 10 caracteres.
 - O token (JWT) dura 30 minutos (`JWT_EXPIRA_MINUTOS`) e leva só o id do usuário. **Perfil e `ativo` são lidos
   do banco a cada requisição**: desativar alguém (`ativo = false`) ou mudar seu perfil vale na hora.
+- Sessão deslizante: `POST /auth/renovar` troca um token ainda válido por um novo com a validade cheia (o front
+  chama enquanto a pessoa usa o sistema). O token guarda a hora do login e a renovação nunca passa de
+  `JWT_SESSAO_MAXIMA_HORAS` (padrão 10) depois dele: aí responde 401 e é preciso entrar de novo.
 - Falhas de login (senha errada, e-mail inexistente, usuário inativo ou só-Google) dão a mesma resposta 401.
   Usuário inativo nem chega a ter a senha conferida.
 - `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.

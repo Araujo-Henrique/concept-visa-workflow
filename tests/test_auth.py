@@ -168,3 +168,72 @@ def test_sem_segredo_configurado_a_api_se_recusa_a_emitir_token(monkeypatch):
     monkeypatch.setenv("JWT_SECRET", "curto")
     with pytest.raises(RuntimeError, match="32 caracteres"):
         seguranca.criar_token(1)
+
+
+# ---------------------------------------------------------------- renovação (sessão deslizante)
+
+def _renovar(c, token):
+    return c.post("/auth/renovar", headers={"Authorization": f"Bearer {token}"})
+
+
+def _corpo(token):
+    return jwt.decode(token, seguranca._segredo(), algorithms=["HS256"])
+
+
+def test_renovar_troca_o_token_mantendo_a_hora_do_login(client_anonimo, usuario_teste):
+    from datetime import datetime, timezone
+    login_ha_2h = datetime.now(timezone.utc) - timedelta(hours=2)
+    antigo = seguranca.criar_token(usuario_teste.id, validade=timedelta(minutes=3), inicio=login_ha_2h)
+    resposta = _renovar(client_anonimo, antigo)
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["expira_em_minutos"] == 30
+    novo = _corpo(corpo["access_token"])
+    assert novo["ini"] == int(login_ha_2h.timestamp()) and novo["sub"] == str(usuario_teste.id)
+    assert novo["exp"] > _corpo(antigo)["exp"]
+    assert client_anonimo.get("/auth/eu", headers={"Authorization": f"Bearer {corpo['access_token']}"}).status_code == 200
+
+
+def test_renovar_respeita_o_teto_da_sessao(client_anonimo, usuario_teste, monkeypatch):
+    from datetime import datetime, timezone
+    monkeypatch.setenv("JWT_SESSAO_MAXIMA_HORAS", "10")
+    agora = datetime.now(timezone.utc)
+    # faltam 10 minutos para o teto: o novo vale só até ele, não 30 minutos
+    quase = seguranca.criar_token(usuario_teste.id, inicio=agora - timedelta(hours=9, minutes=50))
+    resposta = _renovar(client_anonimo, quase)
+    assert resposta.status_code == 200 and resposta.json()["expira_em_minutos"] in (9, 10)
+    # faltam 30 segundos para o teto (o token ainda vale): não renova, só entrando de novo
+    no_limite = seguranca.criar_token(usuario_teste.id, inicio=agora - timedelta(hours=9, minutes=59, seconds=30))
+    resposta = _renovar(client_anonimo, no_limite)
+    assert resposta.status_code == 401 and "limite" in resposta.json()["detail"]
+
+
+def test_token_novo_ja_nasce_dentro_do_teto(usuario_teste, monkeypatch):
+    from datetime import datetime, timezone
+    monkeypatch.setenv("JWT_SESSAO_MAXIMA_HORAS", "1")
+    corpo = _corpo(seguranca.criar_token(usuario_teste.id, validade=timedelta(hours=5)))
+    assert corpo["exp"] - corpo["ini"] <= 3600
+    assert corpo["exp"] <= datetime.now(timezone.utc).timestamp() + 3601
+
+
+def test_renovar_exige_token_valido_e_usuario_ativo(client_anonimo, usuario_teste, sessao):
+    assert client_anonimo.post("/auth/renovar").status_code == 401
+    assert _renovar(client_anonimo, "lixo").status_code == 401
+    vencido = seguranca.criar_token(usuario_teste.id, validade=timedelta(seconds=-5))
+    assert _renovar(client_anonimo, vencido).status_code == 401
+    valido = seguranca.criar_token(usuario_teste.id)
+    usuario_teste.ativo = False
+    sessao.commit()
+    assert _renovar(client_anonimo, valido).status_code == 403
+    usuario_teste.ativo = True
+    sessao.commit()
+
+
+def test_token_antigo_sem_ini_renova_contando_do_iat(client_anonimo, usuario_teste):
+    from datetime import datetime, timezone
+    agora = datetime.now(timezone.utc)
+    antigo = jwt.encode({"sub": str(usuario_teste.id), "iat": agora, "exp": agora + timedelta(minutes=5)},
+                        seguranca._segredo(), algorithm="HS256")
+    resposta = _renovar(client_anonimo, antigo)
+    assert resposta.status_code == 200
+    assert _corpo(resposta.json()["access_token"])["ini"] == int(agora.timestamp())
