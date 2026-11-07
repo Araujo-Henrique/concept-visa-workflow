@@ -30,3 +30,7 @@ class ClienteOut(ClienteBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class ClienteLista(ClienteOut):
+    n_processos: int = 0  # quantos processos o cliente tem (lista da tela de clientes)

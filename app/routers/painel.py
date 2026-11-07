@@ -23,7 +23,7 @@ COLUNA_DA_DATA = {evento: coluna for coluna, evento in DATAS_DA_AGENDA.items()}
 def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None, situacao: str | None = None,
            consulado: Consulado | None = None, cliente: str | None = None,
            resultado_geral: str | None = None,  # Processando, Aprovado, Negado ou Parcial
-           processo_id: int | None = None,
+           processo_id: int | None = None, cliente_id: int | None = None,
            data: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf"] | None = None,
            de: date | None = None, ate: date | None = None,
            limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
@@ -53,6 +53,8 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
         filtros.append(painel.c.resultado_geral == resultado_geral)
     if processo_id is not None:
         filtros.append(painel.c.processo_id == processo_id)
+    if cliente_id is not None:
+        filtros.append(painel.c.cliente_id == cliente_id)
 
     total = sessao.scalar(select(func.count()).select_from(painel).where(*filtros))
     response.headers["X-Total-Count"] = str(total)

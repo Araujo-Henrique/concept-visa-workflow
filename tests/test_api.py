@@ -445,3 +445,43 @@ def test_nao_da_para_apagar_o_consulado_de_um_processo_com_data(client):
     ana = novo_cliente(client, "Ana Atual")
     p = novo_obt(client, ana["id"], consulado="SP", data_casv="2026-12-01")
     assert client.patch(f"/processos-obt/{p['id']}", json={"consulado": None}).status_code == 422
+
+
+# ---------------------------------------------------------------- clientes na tela
+
+def test_lista_de_clientes_em_ordem_alfabetica_com_total_e_numero_de_processos(client):
+    bia, ana = novo_cliente(client, "Bia Lima"), novo_cliente(client, "ana Souza")
+    novo_obt(client, ana["id"])
+    novo_obt(client, ana["id"])
+    resposta = client.get("/clientes", params={"limit": 1})
+    assert resposta.headers["X-Total-Count"] == "2"
+    assert [(c["nome"], c["n_processos"]) for c in resposta.json()] == [("ana Souza", 2)]  # sem diferenciar caixa
+    assert client.get("/clientes", params={"offset": 1}).json()[0]["n_processos"] == 0
+
+
+def test_busca_unica_por_nome_email_ou_telefone(client):
+    novo_cliente(client, "Ana Souza", email="ana@exemplo.com", telefone="(41) 99999-0001")
+    novo_cliente(client, "Bia Lima", email="bia@outro.com", telefone="41988880002")
+    busca = lambda termo: [c["nome"] for c in client.get("/clientes", params={"busca": termo}).json()]
+    assert busca("souza") == ["Ana Souza"]
+    assert busca("OUTRO.com") == ["Bia Lima"]
+    assert busca("9999-0001") == ["Ana Souza"]  # telefone: só os dígitos contam
+    assert busca("41 9") == ["Ana Souza", "Bia Lima"]
+    assert client.get("/clientes", params={"busca": "souza"}).headers["X-Total-Count"] == "1"
+
+
+def test_painel_filtra_pelo_cliente(client):
+    ana, bia = novo_cliente(client, "Ana Souza"), novo_cliente(client, "Bia Lima")
+    novo_obt(client, ana["id"])
+    novo_obt(client, bia["id"])
+    linhas = client.get("/painel", params={"cliente_id": ana["id"]}).json()
+    assert [l["cliente"] for l in linhas] == ["Ana Souza"]
+
+
+def test_referencias_trazem_os_usuarios_ativos_para_orientacao(client, sessao, usuario_teste):
+    from app.servicos.usuarios import criar_usuario
+    inativo = criar_usuario(sessao, "Fora Daqui", "fora@exemplo.com", "leitor", "senha-bem-longa-1")
+    inativo.ativo = False
+    sessao.commit()
+    usuarios = client.get("/referencias").json()["usuarios"]
+    assert usuarios == [{"id": usuario_teste.id, "nome": "Usuario Teste"}]  # sem e-mail, sem inativos

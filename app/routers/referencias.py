@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.deps import Sessao
 from app.enums import (PERFIS, SITUACOES, Consulado, DocsREN, Monitoramento, Orientacao, Rascunho, Resultado,
                        StatusDS, TipoProcesso)
-from app.models import Situacao
+from app.models import Situacao, Usuario
 
 router = APIRouter(prefix="/referencias", tags=["Referências"])
 
@@ -21,4 +21,7 @@ def referencias(sessao: Sessao) -> dict:
     valores = lambda enum: [e.value for e in enum]
     return {"situacoes": situacoes, "consulados": valores(Consulado), "rascunho": valores(Rascunho),
             "status_ds": valores(StatusDS), "resultado": valores(Resultado), "orientacao": valores(Orientacao),
-            "monitoramento": valores(Monitoramento), "docs_ren": valores(DocsREN), "perfis": PERFIS}
+            "monitoramento": valores(Monitoramento), "docs_ren": valores(DocsREN), "perfis": PERFIS,
+            # quem pode constar como "orientado por": usuários ativos (só id e nome, nada de e-mail)
+            "usuarios": [{"id": u.id, "nome": u.nome} for u in sessao.scalars(
+                select(Usuario).where(Usuario.ativo).order_by(Usuario.nome))]}
