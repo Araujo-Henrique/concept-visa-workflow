@@ -276,6 +276,11 @@ function PassoCliente({ aoEscolher }: { aoEscolher: (c: Cliente) => void }) {
   const [buscando, iniciar] = useTransition();
 
   useEffect(() => {
+    // menos de 2 letras não busca (nem chama o servidor): só limpa a lista
+    if (termo.trim().length < 2) {
+      const limpa = setTimeout(() => setResultados([]), 0);
+      return () => clearTimeout(limpa);
+    }
     const espera = setTimeout(() => iniciar(async () => setResultados(await buscarClientes(termo))), 250);
     return () => clearTimeout(espera);
   }, [termo]);

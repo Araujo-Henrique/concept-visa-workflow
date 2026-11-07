@@ -7,6 +7,10 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 
 - Login com o e-mail e a senha da API. O token fica num cookie `httpOnly`: o navegador nunca o lê.
 - Rotas protegidas: sem sessão, a pessoa vai ao login e volta para onde ia depois de entrar.
+- Sessão deslizante: enquanto a pessoa usa o sistema, o token é renovado (no máximo a cada 5 minutos, via
+  `POST /auth/renovar`). Parada, aparece um aviso 2 minutos antes de vencer ("Continuar conectado"); vencida,
+  volta ao login com "Sua sessão expirou". Cada login vale no máximo `JWT_SESSAO_MAXIMA_HORAS` (API).
+  O cookie `cv_expira` (sem o token, legível pelo navegador) diz quando a sessão vence.
 - Menu por perfil (leitor, atendente, admin). Esconder um botão não protege nada: quem decide é a API (401/403).
 - Início com um "cartão de embarque" por tipo de processo (em andamento e situações abertas) e o **painel de
   embarque**: as datas marcadas dos próximos 7 dias, no estilo do letreiro de partidas do aeroporto.
@@ -66,7 +70,7 @@ npm run test:e2e   # sobe o next dev e testa a porta de entrada de verdade
 | `app/`        | Páginas (App Router). `(app)/` é a área logada; `login/` é pública; `acoes/` são Server Actions.    |
 | `components/` | `marca/` (logo), `login/` (cena do voo), `shell/` (menu), `movimento/` (animações), `ui/` (shadcn). |
 | `lib/`        | `api.ts` (única porta para a API), `sessao.ts`, `permissoes.ts`, `erros.ts`, `formatos.ts`.         |
-| `proxy.ts`    | Checagem otimista de sessão (o antigo `middleware` do Next 16).                                     |
+| `proxy.ts`    | Checagem otimista de sessão (o antigo `middleware` do Next 16). Server Actions passam direto.       |
 | `tests/`      | Jest: `lib/`, `componentes/` e `e2e/`.                                                              |
 
 Commits seguem Conventional Commits (`npm run commit`).

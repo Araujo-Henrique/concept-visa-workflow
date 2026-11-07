@@ -1,7 +1,7 @@
-import { entrar, sair } from "@/app/acoes/auth";
+import { entrar, renovarSessao, sair } from "@/app/acoes/auth";
 
 // A ação de login roda no servidor do Next: troca e-mail e senha por um token e o guarda num cookie httpOnly.
-const mockCookies = { set: jest.fn(), delete: jest.fn() };
+const mockCookies = { set: jest.fn(), delete: jest.fn(), get: jest.fn() };
 jest.mock("next/headers", () => ({ cookies: async () => mockCookies }));
 jest.mock("next/navigation", () => ({
   redirect: (destino: string) => {
@@ -29,6 +29,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   mockCookies.set.mockReset();
   mockCookies.delete.mockReset();
+  mockCookies.get.mockReset();
 });
 
 describe("entrar: validação antes de falar com a API", () => {
@@ -86,11 +87,21 @@ describe("entrar: login com sucesso", () => {
 
   it("guarda o token num cookie httpOnly com a mesma validade do token", async () => {
     await entrar(undefined, form("ana@exemplo.com", "senha-longa-123"));
-    expect(mockCookies.set).toHaveBeenCalledTimes(1);
     const [nome, valor, opcoes] = mockCookies.set.mock.calls[0];
     expect(nome).toBe("cv_sessao");
     expect(valor).toBe("jwt-secreto");
     expect(opcoes).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/", maxAge: 30 * 60 });
+  });
+
+  it("ao lado, quando a sessão vence (legível pelo navegador, sem o token)", async () => {
+    const antes = Date.now();
+    await entrar(undefined, form("ana@exemplo.com", "senha-longa-123"));
+    expect(mockCookies.set).toHaveBeenCalledTimes(2);
+    const [nome, valor, opcoes] = mockCookies.set.mock.calls[1];
+    expect(nome).toBe("cv_expira");
+    expect(Number(valor)).toBeGreaterThanOrEqual(antes + 30 * 60_000);
+    expect(valor).not.toContain("jwt");
+    expect(opcoes).toMatchObject({ httpOnly: false, maxAge: 30 * 60 });
   });
 
   it("devolve só o primeiro nome para a boas-vindas, e nunca o token", async () => {
@@ -118,13 +129,59 @@ describe("entrar: o nome é só um enfeite", () => {
     fetchMock.mockResolvedValueOnce(resposta(TOKEN)).mockRejectedValueOnce(new TypeError("fetch failed"));
     const r = await entrar(undefined, form("ana@exemplo.com", "senha-longa-123"));
     expect(r).toEqual({ ok: true, primeiroNome: undefined });
-    expect(mockCookies.set).toHaveBeenCalledTimes(1);
+    expect(mockCookies.set).toHaveBeenCalledWith("cv_sessao", "jwt-secreto", expect.anything());
   });
 });
 
 describe("sair", () => {
-  it("apaga o cookie de sessão e volta ao login", async () => {
+  it("apaga os cookies de sessão e volta ao login", async () => {
     await expect(sair()).rejects.toThrow("REDIRECT:/login");
     expect(mockCookies.delete).toHaveBeenCalledWith("cv_sessao");
+    expect(mockCookies.delete).toHaveBeenCalledWith("cv_expira");
+  });
+});
+
+describe("renovarSessao", () => {
+  beforeEach(() => mockCookies.get.mockReturnValue({ value: "jwt-atual" }));
+
+  it("troca o token na API e regrava os dois cookies", async () => {
+    fetchMock.mockResolvedValue(resposta({ access_token: "jwt-novo", expira_em_minutos: 30 }));
+    const r = await renovarSessao();
+    expect(r.ok).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://api.teste:8000/auth/renovar");
+    expect(init.method).toBe("POST");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt-atual");
+    expect(mockCookies.set).toHaveBeenCalledWith(
+      "cv_sessao",
+      "jwt-novo",
+      expect.objectContaining({ httpOnly: true }),
+    );
+    expect(mockCookies.set).toHaveBeenCalledWith("cv_expira", expect.any(String), expect.anything());
+    expect(JSON.stringify(r)).not.toContain("jwt");
+  });
+
+  it("teto da sessão: diz que chegou ao limite e não mexe nos cookies", async () => {
+    fetchMock.mockResolvedValue(
+      resposta({ detail: "A sessão chegou ao limite. Entre de novo" }, { status: 401 }),
+    );
+    expect(await renovarSessao()).toEqual({ ok: false, motivo: "limite" });
+    expect(mockCookies.set).not.toHaveBeenCalled();
+  });
+
+  it("token vencido, usuário desativado ou sem cookie: expirou", async () => {
+    fetchMock.mockResolvedValueOnce(resposta({ detail: "Faça login para acessar" }, { status: 401 }));
+    expect(await renovarSessao()).toEqual({ ok: false, motivo: "expirou" });
+    fetchMock.mockResolvedValueOnce(resposta({ detail: "Acesso desativado" }, { status: 403 }));
+    expect(await renovarSessao()).toEqual({ ok: false, motivo: "expirou" });
+    mockCookies.get.mockReturnValue(undefined);
+    fetchMock.mockClear();
+    expect(await renovarSessao()).toEqual({ ok: false, motivo: "expirou" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("API fora do ar: falha (o navegador tenta de novo depois)", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    expect(await renovarSessao()).toEqual({ ok: false, motivo: "falha" });
   });
 });

@@ -64,7 +64,7 @@ describe("chamada autenticada", () => {
 
   it("sem cookie de sessão nem chama a API: vai para o login", async () => {
     mockCookies.get.mockReturnValue(undefined);
-    await expect(apiGet("/painel")).rejects.toThrow("REDIRECT:/login");
+    await expect(apiGet("/painel")).rejects.toThrow("REDIRECT:/login?expirou=1");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

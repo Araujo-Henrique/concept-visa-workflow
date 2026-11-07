@@ -6,6 +6,7 @@ import * as z from "zod";
 
 import { urlDaApi } from "@/lib/api";
 import { COOKIE_SESSAO } from "@/lib/constantes";
+import { apagarSessao, gravarSessao } from "@/lib/cookies-sessao";
 import { mensagemDeErro } from "@/lib/erros";
 
 export type EstadoLogin = { erro?: string; ok?: boolean; primeiroNome?: string } | undefined;
@@ -52,13 +53,7 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
     access_token: string;
     expira_em_minutos: number;
   };
-  (await cookies()).set(COOKIE_SESSAO, access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: expira_em_minutos * 60,
-  });
+  await gravarSessao(access_token, expira_em_minutos);
 
   // nome para o carimbo de boas-vindas (o perfil é sempre lido de novo pela API em cada tela)
   const eu = await fetch(`${base}/auth/eu`, {
@@ -72,6 +67,44 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
 }
 
 export async function sair() {
-  (await cookies()).delete(COOKIE_SESSAO);
+  await apagarSessao();
   redirect("/login");
+}
+
+export type Renovacao =
+  { ok: true; expiraEm: number } | { ok: false; motivo: "limite" | "expirou" | "falha" };
+
+/**
+ * Sessão deslizante: troca o token atual (ainda válido) por um novo na API e regrava os cookies. Chamada
+ * pelo navegador enquanto a pessoa usa o sistema. Não redireciona: quem chamou decide o que mostrar.
+ */
+export async function renovarSessao(): Promise<Renovacao> {
+  const token = (await cookies()).get(COOKIE_SESSAO)?.value;
+  if (!token) return { ok: false, motivo: "expirou" };
+  let resposta: Response;
+  try {
+    resposta = await fetch(`${urlDaApi()}/auth/renovar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, motivo: "falha" };
+  }
+  if (resposta.status === 401) {
+    const detail = await resposta.json().then(
+      (j) => String(j?.detail ?? ""),
+      () => "",
+    );
+    return { ok: false, motivo: /limite/i.test(detail) ? "limite" : "expirou" };
+  }
+  if (resposta.status === 403) return { ok: false, motivo: "expirou" }; // acesso desativado
+  if (!resposta.ok) return { ok: false, motivo: "falha" };
+  const { access_token, expira_em_minutos } = (await resposta.json()) as {
+    access_token: string;
+    expira_em_minutos: number;
+  };
+  const agora = Date.now();
+  await gravarSessao(access_token, expira_em_minutos, agora);
+  return { ok: true, expiraEm: agora + expira_em_minutos * 60_000 };
 }

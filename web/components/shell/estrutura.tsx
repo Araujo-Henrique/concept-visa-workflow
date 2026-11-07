@@ -8,6 +8,7 @@ import { useState, type ReactNode } from "react";
 import { Logotipo } from "@/components/marca/logotipo";
 import { Simbolo } from "@/components/marca/simbolo";
 import { BuscaGlobal } from "@/components/shell/busca-global";
+import { GuardaSessao } from "@/components/shell/guarda-sessao";
 import { MenuUsuario } from "@/components/shell/menu-usuario";
 import { ativo, MENU } from "@/components/shell/navegacao";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -120,6 +121,7 @@ export function Estrutura({ usuario, children }: { usuario: Usuario; children: R
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-8 lg:px-10 lg:py-10">{children}</main>
+        <GuardaSessao />
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ type Opcoes = { metodo?: "GET" | "POST" | "PATCH" | "DELETE"; corpo?: unknown; p
 
 async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes = {}): Promise<Response> {
   const token = (await cookies()).get(COOKIE_SESSAO)?.value;
-  if (!token) redirect("/login");
+  if (!token) redirect("/login?expirou=1"); // o cookie some quando a sessão vence
 
   // fora do try: API_URL ausente é erro de configuração (aparece com a mensagem clara), não "API fora do ar"
   const base = urlDaApi();
