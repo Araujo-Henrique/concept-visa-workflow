@@ -64,6 +64,10 @@ export async function mudarResultado(solicitanteId: number, resultado: string) {
   return eAtualizar(() => apiEnviar("PATCH", `/solicitantes/${solicitanteId}`, { resultado }));
 }
 
+export async function renomearSolicitante(solicitanteId: number, nome: string) {
+  return eAtualizar(() => apiEnviar("PATCH", `/solicitantes/${solicitanteId}`, { nome }));
+}
+
 export async function adicionarSolicitante(processoId: number, nome: string) {
   return eAtualizar(() => apiEnviar<Solicitante>("POST", `/processos/${processoId}/solicitantes`, { nome }));
 }

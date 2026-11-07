@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Plus, Trash2, UserPlus } from "lucide-react";
+import { Check, Crown, Pencil, Plus, Trash2, UserPlus, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ import {
   mudarStatusFormulario,
   removerFormulario,
   removerSolicitante,
+  renomearSolicitante,
   tornarTitular,
 } from "@/app/acoes/processos";
 import { Cabecalho } from "@/components/passaporte/paginas";
@@ -111,7 +112,11 @@ function Pessoa({
     <li className="rounded-xl border bg-background/70 p-4" aria-busy={ocupado}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-heading font-bold">{s.nome}</p>
+          {permissoes.escrever ? (
+            <NomeEditavel solicitanteId={s.id} nome={s.nome} />
+          ) : (
+            <p className="truncate font-heading font-bold">{s.nome}</p>
+          )}
           {s.titular ? (
             <span className="text-[10px] font-semibold tracking-[0.2em] text-marca-forte uppercase">
               Titular
@@ -292,6 +297,76 @@ function NovoCodigo({ solicitanteId, statusDs }: { solicitanteId: number; status
       >
         <Plus className="size-4" /> DS-160
       </Button>
+    </form>
+  );
+}
+
+/** Nome com lápis: clicar vira um campo na própria linha (Enter salva, Esc cancela). */
+function NomeEditavel({ solicitanteId, nome }: { solicitanteId: number; nome: string }) {
+  const { ocupado, executar } = useAcao();
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(nome);
+
+  const cancelar = () => {
+    setValor(nome);
+    setEditando(false);
+  };
+  const salvar = () => {
+    const novo = valor.trim();
+    if (!novo || novo === nome) return cancelar();
+    executar(() => renomearSolicitante(solicitanteId, novo), `Nome atualizado: ${novo}`);
+    setEditando(false);
+  };
+
+  if (!editando)
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setValor(nome);
+          setEditando(true);
+        }}
+        disabled={ocupado}
+        className="group flex max-w-full items-center gap-2 text-left"
+        aria-label={`Editar o nome de ${nome}`}
+      >
+        <span className="truncate font-heading font-bold">{nome}</span>
+        <Pencil className="size-3.5 shrink-0 text-muted-foreground opacity-50 transition-opacity group-hover:opacity-100" />
+      </button>
+    );
+
+  return (
+    <form
+      className="flex items-center gap-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        salvar();
+      }}
+    >
+      <Input
+        autoFocus
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onKeyDown={(e) => e.key === "Escape" && cancelar()}
+        aria-label={`Novo nome de ${nome}`}
+        className="h-8 w-60 font-heading font-bold"
+      />
+      <button
+        type="submit"
+        disabled={!valor.trim()}
+        className="rounded p-1.5 text-marca-forte hover:bg-marca-suave"
+        aria-label="Salvar nome"
+      >
+        <Check className="size-4" />
+      </button>
+      <button
+        type="button"
+        onClick={cancelar}
+        className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+        aria-label="Cancelar"
+      >
+        <X className="size-4" />
+      </button>
     </form>
   );
 }
