@@ -1,7 +1,7 @@
 import re
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 
 from app.deps import Sessao
 from app.models import Cliente, Processo
@@ -65,9 +65,26 @@ def atualizar(cliente_id: int, dados: ClienteUpdate, sessao: Sessao):
 
 
 @router.delete("/{cliente_id}", status_code=204)
-def remover(cliente_id: int, sessao: Sessao):
+def remover(cliente_id: int, sessao: Sessao,
+            com_processos: bool = Query(False, description="Apaga também os processos do cliente")):
+    """Apaga o cliente do banco (ex.: desistiu e pediu para ser retirado). Só admin: DELETE exige a permissão
+    `apagar`. Com processos, só apaga se `com_processos=true`: aí saem junto os processos, solicitantes,
+    formulários e eventos. Não há lixeira: a remoção é definitiva."""
     cliente = obter_ou_404(sessao, Cliente, cliente_id, "Cliente")
-    if cliente.processos:
-        raise HTTPException(status_code=409, detail="O cliente tem processos vinculados e não pode ser apagado")
+    processos = list(cliente.processos)
+    if processos and not com_processos:
+        raise HTTPException(status_code=409, detail=(
+            f"O cliente tem {len(processos)} processo(s). Para apagar junto, confirme com com_processos=true"))
+    ids = [p.id for p in processos]
+    if ids:
+        # outra tentativa que aponte para um destes processos perde só a referência, não é apagada
+        sessao.execute(update(Processo).where(Processo.processo_anterior_id.in_(ids), Processo.id.not_in(ids))
+                       .values(processo_anterior_id=None))
+        for processo in processos:
+            processo.processo_anterior_id = None
+        sessao.flush()
+        for processo in processos:
+            sessao.delete(processo)  # solicitantes, formulários e eventos saem junto (cascade)
+        sessao.flush()
     sessao.delete(cliente)
     sessao.commit()

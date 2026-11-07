@@ -201,3 +201,13 @@ def test_toda_rota_exceto_o_login_exige_autenticacao():
             if resposta.status_code != 401:
                 sem_protecao.append((metodo, caminho, resposta.status_code))
     assert sem_protecao == []
+
+
+def test_so_admin_apaga_cliente_mesmo_com_processos(como):
+    admin = como("admin")
+    cliente = novo_cliente(admin, "Pediu Para Sair")
+    novo_obt(admin, cliente["id"])
+    for perfil in ("atendente", "leitor"):
+        resposta = como(perfil).delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"})
+        assert resposta.status_code == 403
+    assert admin.delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"}).status_code == 204

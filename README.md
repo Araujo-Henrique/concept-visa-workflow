@@ -124,6 +124,8 @@ então uma rota nova já nasce protegida (há um teste que percorre todas as rot
 - Mudanças de perfil, `ativo`, nome e senha de um usuário ficam registradas (quem fez, o que mudou, quando),
   sem nunca guardar a senha.
 - A empresa nunca fica sem um administrador ativo: a API recusa (409) rebaixar ou desativar o último.
+- Excluir cliente (`DELETE /clientes/{id}`, só admin): com processos, a API recusa (409) a menos que venha
+  `com_processos=true`; aí apaga junto processos, solicitantes, formulários e eventos. É definitivo.
 - "Entrar com Google" fica como melhoria futura: será uma segunda forma de entrar, ligada ao mesmo usuário
   pelo e-mail, sem alterar o que existe.
 

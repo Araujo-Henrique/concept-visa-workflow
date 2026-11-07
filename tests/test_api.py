@@ -1,5 +1,6 @@
 """Testes da API contra o PostgreSQL de teste: o que a API recebe, grava e devolve."""
 import pytest
+from sqlalchemy import select
 
 
 def novo_cliente(client, nome="Ana Souza", **extra):
@@ -48,6 +49,28 @@ def test_cliente_com_processo_nao_pode_ser_apagado(client):
     assert client.delete(f"/clientes/{cliente['id']}").status_code == 409
     outro = novo_cliente(client, "Sem Processo")
     assert client.delete(f"/clientes/{outro['id']}").status_code == 204
+
+
+def test_admin_apaga_cliente_com_processos_quando_confirma(client, sessao):
+    from app.models import Evento, Solicitante
+    cliente = novo_cliente(client, "Desistiu Do Processo")
+    primeiro = novo_obt(client, cliente["id"], solicitantes_extras=["Filho 1"])
+    segundo = novo_obt(client, cliente["id"], processo_anterior_id=primeiro["id"])
+    fica = novo_obt(client, novo_cliente(client, "Outro Cliente")["id"])
+
+    resposta = client.delete(f"/clientes/{cliente['id']}")
+    assert resposta.status_code == 409 and "2 processo(s)" in resposta.json()["detail"]
+    assert client.get(f"/clientes/{cliente['id']}").status_code == 200  # nada saiu
+
+    assert client.delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"}).status_code == 204
+    assert client.get(f"/clientes/{cliente['id']}").status_code == 404
+    for p in (primeiro, segundo):
+        assert client.get(f"/processos-obt/{p['id']}").status_code == 404
+    sessao.expire_all()
+    ids = [primeiro["id"], segundo["id"]]
+    assert not sessao.scalars(select(Solicitante).where(Solicitante.processo_id.in_(ids))).all()
+    assert not sessao.scalars(select(Evento).where(Evento.processo_id.in_(ids))).all()
+    assert client.get(f"/processos-obt/{fica['id']}").status_code == 200  # o de outro cliente fica
 
 
 # ---------------------------------------------------------------- processos
