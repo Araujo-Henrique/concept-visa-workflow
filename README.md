@@ -137,7 +137,9 @@ python -m scripts.importar_projeto1 --usuarios usuarios.csv         # grava de v
   Se clientes ou processos não baterem, nada é gravado.
 - `n_solicitantes` vira N solicitantes (o titular leva o nome do cliente; os outros ganham o primeiro nome que
   aparece nos códigos do DS-160). Os códigos viram formulários, `notas_ds160` vira a observação do processo e
-  o consulado `N/D` vira consulado vazio.
+  o consulado `N/D` vira consulado vazio. Esses processos (data marcada e consulado vazio) continuam legíveis e
+  editáveis: a regra "com data de CASV ou entrevista, informe o consulado" vale ao criar e, no PATCH, só quando a
+  edição mexe no consulado ou nessas datas.
 - **Padronização na importação** (o banco antigo não é alterado): o leitor de códigos tolera traço opcional, "novo" sem
   traço, vários códigos por linha e comentários; e-mail em minúsculas, telefone só dígitos, nomes em CAIXA ALTA em
   Nome Próprio e grupos unificados.

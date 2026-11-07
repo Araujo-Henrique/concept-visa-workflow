@@ -18,7 +18,8 @@ def aplicar_patch(base: type[BaseModel], objeto, patch: dict) -> None:
     atual = {campo: getattr(objeto, campo) for campo in base.model_fields}
     atual.update(patch)
     try:
-        validado = base(**atual)
+        # o contexto diz quais campos o PATCH trouxe: regras de dados antigos só valem se a edição os toca
+        validado = base.model_validate(atual, context={"alterados": set(patch)})
     except ValidationError as erro:
         raise HTTPException(
             status_code=422, detail=erro.errors(include_url=False, include_context=False, include_input=False))

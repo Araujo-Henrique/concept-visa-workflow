@@ -384,3 +384,64 @@ def test_painel_obt_mostra_a_orientacao_com_o_nome_de_quem_orientou(client, sess
     client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro"})
     ren = next(l for l in client.get("/painel", params={"tipo": "REN"}).json())
     assert "orientacao" not in ren
+
+
+# ---------------------------------------------------------------- histórico importado
+
+def test_obt_do_historico_com_data_e_sem_consulado_continua_legivel(client, sessao):
+    """Os 'N/D' da planilha viraram consulado vazio, alguns com data marcada. O banco aceita (de propósito);
+    a regra 'com data, informe o consulado' vale ao criar e editar, nunca para LER o que já está gravado."""
+    from datetime import date
+
+    from app.enums import Orientacao, Rascunho
+    from app.models import ProcessoOBT, Solicitante
+    ana = novo_cliente(client, "Ana Souza")
+    antigo = ProcessoOBT(cliente_id=ana["id"], situacao="Concluido", consulado=None, data_casv=date(2024, 3, 3),
+                         data_entrevista=date(2024, 3, 4), status_rascunho=Rascunho.ENVIADO,
+                         orientacao=Orientacao.FORNECIDAS)
+    antigo.solicitantes.append(Solicitante(nome="Ana Souza", titular=True))
+    sessao.add(antigo)
+    sessao.commit()
+
+    resposta = client.get(f"/processos-obt/{antigo.id}")
+    assert resposta.status_code == 200
+    assert (resposta.json()["consulado"], resposta.json()["data_casv"]) == (None, "2024-03-03")
+    assert client.get("/processos-obt", params={"cliente_id": ana["id"]}).status_code == 200
+
+    # a regra continua valendo para quem cria
+    assert client.post("/processos-obt", json={"cliente_id": ana["id"], "situacao": "Processando",
+                                               "data_casv": "2026-12-01"}).status_code == 422
+
+
+def _obt_do_historico(client, sessao):
+    """OBT como os importados: data marcada e consulado vazio (era 'N/D')."""
+    from datetime import date
+
+    from app.enums import Orientacao, Rascunho
+    from app.models import ProcessoOBT, Solicitante
+    ana = novo_cliente(client, "Ana Historico")
+    antigo = ProcessoOBT(cliente_id=ana["id"], situacao="Concluido", consulado=None, data_casv=date(2024, 3, 3),
+                         status_rascunho=Rascunho.ENVIADO, orientacao=Orientacao.FORNECIDAS)
+    antigo.solicitantes.append(Solicitante(nome="Ana Historico", titular=True))
+    sessao.add(antigo)
+    sessao.commit()
+    return antigo.id
+
+
+def test_historico_pode_ser_editado_sem_preencher_o_consulado(client, sessao):
+    pid = _obt_do_historico(client, sessao)
+    r = client.patch(f"/processos-obt/{pid}", json={"observacao": "conferido", "codigo_rastreio": "BR123"})
+    assert r.status_code == 200 and r.json()["observacao"] == "conferido" and r.json()["consulado"] is None
+
+
+def test_mexer_nas_datas_do_historico_continua_exigindo_o_consulado(client, sessao):
+    pid = _obt_do_historico(client, sessao)
+    assert client.patch(f"/processos-obt/{pid}", json={"data_entrevista": "2024-03-04"}).status_code == 422
+    assert client.patch(f"/processos-obt/{pid}", json={"consulado": "SP"}).status_code == 200  # corrige
+    assert client.patch(f"/processos-obt/{pid}", json={"data_entrevista": "2024-03-04"}).status_code == 200
+
+
+def test_nao_da_para_apagar_o_consulado_de_um_processo_com_data(client):
+    ana = novo_cliente(client, "Ana Atual")
+    p = novo_obt(client, ana["id"], consulado="SP", data_casv="2026-12-01")
+    assert client.patch(f"/processos-obt/{p['id']}", json={"consulado": None}).status_code == 422

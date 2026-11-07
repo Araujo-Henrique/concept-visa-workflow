@@ -9,11 +9,17 @@ Para cada tipo há:
 from datetime import date, datetime
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
 
 from app.enums import (SITUACOES, Consulado, DocsREN, Monitoramento, Orientacao, Rascunho, TipoProcesso)
 from app.schemas.comum import Texto, atualizacao
 from app.schemas.solicitante import SolicitanteOut
+
+
+def mexeu(info: ValidationInfo, *campos: str) -> bool:
+    """A validação veio de um PATCH que alterou algum destes campos? Sem contexto (criação), vale sempre."""
+    alterados = (info.context or {}).get("alterados")
+    return alterados is None or bool(alterados & set(campos))
 
 
 class NovoProcesso(BaseModel):
@@ -63,10 +69,12 @@ class OBTBase(BaseModel):
     observacao: Texto | None = None
 
     @model_validator(mode="after")
-    def _regras(self):
+    def _regras(self, info: ValidationInfo):
         if self.orientacao == Orientacao.AGENDADA and self.orientacao_data is None:
             raise ValueError("Orientação 'Agendada' exige a data da orientação")
-        if (self.data_casv or self.data_entrevista) and self.consulado is None:
+        # No PATCH, a regra do consulado só é cobrada se a edição mexe nos campos dela: o histórico importado
+        # tem processos com data e consulado vazio (era "N/D") que precisam poder ser editados no resto.
+        if (self.data_casv or self.data_entrevista) and self.consulado is None and                 mexeu(info, "consulado", "data_casv", "data_entrevista"):
             raise ValueError("Com data de CASV ou entrevista, informe o consulado")
         return self
 
@@ -80,6 +88,12 @@ OBTUpdate = atualizacao(OBTBase, "OBTUpdate")
 
 class OBTOut(ProcessoOut, OBTBase):
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def _regras(self):
+        # Saída mostra o que está gravado. As regras entre campos valem ao criar e editar; o histórico
+        # importado tem processos com data e consulado vazio (era "N/D"), que precisam continuar legíveis.
+        return self
 
 
 # ---------------------------------------------------------------- REN
@@ -113,6 +127,10 @@ class RENOut(ProcessoOut, RENBase):
     model_config = ConfigDict(from_attributes=True)
 
     data_despacho: date | None  # calculada pelo banco: CASV - 7 dias
+
+    @model_validator(mode="after")
+    def _regras(self):
+        return self  # mesma razão do OBTOut: a saída nunca recusa o que já está gravado
 
 
 # ---------------------------------------------------------------- PASS
