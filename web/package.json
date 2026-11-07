@@ -6,6 +6,7 @@
     "dev": "concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --reload --env-file .env\" \"next dev\"",
     "build": "next build",
     "start": "next start",
+    "publicar": "next build && concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --env-file .env\" \"next start\"",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "npm run lint:prettier:check && npm run lint:eslint:check && npm run typecheck && jest --runInBand",
     "test:watch": "jest --watchAll --runInBand --verbose",

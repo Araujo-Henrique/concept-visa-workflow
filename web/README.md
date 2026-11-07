@@ -51,6 +51,17 @@ npm run dev                           # sobe a API (porta 8000) e o front (http:
 `npm run dev` liga os dois servidores num terminal só (logs marcados `[api]` e `[web]`); `Ctrl+C` desliga
 os dois. Para subir só o front (com a API já ligada em outro terminal): `npx next dev`.
 
+### Mostrar para alguém de fora (ngrok)
+
+```powershell
+copy .env.example .env.production.local   # API_URL para o modo produção (fica fora do Git)
+npm run publicar                          # build + API + front de produção em http://localhost:3000
+ngrok http 3000                           # em outro terminal: o link público é a linha "Forwarding"
+```
+
+`Ctrl+C` no ngrok derruba o link; no `publicar`, desliga a API e o front. Rode de novo o `publicar` depois de
+cada alteração (ele refaz a build). Não use `npm run dev` para mostrar: é mais lento e expõe detalhes de erro.
+
 ## Testes
 
 ```powershell
