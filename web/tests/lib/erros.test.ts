@@ -18,6 +18,7 @@ describe("mensagemDeErro", () => {
   it("cai numa mensagem amigável por status quando não há detalhe", () => {
     expect(mensagemDeErro(403, null)).toBe("Seu perfil não permite esta ação.");
     expect(mensagemDeErro(503, undefined)).toMatch(/indisponível/);
+    expect(mensagemDeErro(500, null)).toBe("A API teve um erro interno ao buscar esses dados.");
     expect(mensagemDeErro(418, "")).toBe("Algo deu errado. Tente de novo.");
   });
 });
