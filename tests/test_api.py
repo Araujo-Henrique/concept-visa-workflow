@@ -534,9 +534,9 @@ def test_painel_filtra_pelo_cliente(client):
 
 def test_orientacao_tem_os_status_novos_na_ordem_e_filtra_no_painel(client):
     assert client.get("/referencias").json()["orientacao"] == [
-        "Pendente", "Opções enviadas", "Decidindo", "Opt A", "Escolheu padrão", "Agendada", "Fornecidas"]
+        "Pendente", "Opções enviadas", "Sem resposta", "Opt A", "Escolheu padrão", "Agendada", "Fornecidas"]
     ids = {}
-    for nome, orientacao in (("Cliente Enviadas", "Opções enviadas"), ("Cliente Decidindo", "Decidindo"),
+    for nome, orientacao in (("Cliente Enviadas", "Opções enviadas"), ("Cliente Sem Resposta", "Sem resposta"),
                              ("Cliente Padrao", "Escolheu padrão")):
         ids[orientacao] = novo_obt(client, novo_cliente(client, nome)["id"], orientacao=orientacao)["id"]
     novo_obt(client, novo_cliente(client, "Cliente Pendente")["id"])
@@ -547,7 +547,7 @@ def test_orientacao_tem_os_status_novos_na_ordem_e_filtra_no_painel(client):
     assert client.get("/painel", params={"orientacao": "Inventada"}).status_code == 422
 
     # muda pelo PATCH; só "Agendada" exige data
-    resposta = client.patch(f"/processos-obt/{ids['Decidindo']}", json={"orientacao": "Opt A"})
+    resposta = client.patch(f"/processos-obt/{ids['Sem resposta']}", json={"orientacao": "Opt A"})
     assert resposta.status_code == 200 and resposta.json()["orientacao"] == "Opt A"
     resposta = client.patch(f"/processos-obt/{ids['Escolheu padrão']}", json={"orientacao": "Agendada"})
     assert resposta.status_code == 422

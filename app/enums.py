@@ -37,11 +37,11 @@ class Resultado(str, Enum):
 
 
 class Orientacao(str, Enum):
-    """Na ordem do caminho: as opções vão para o cliente, ele decide entre a Opt A e a orientação padrão;
+    """Na ordem do caminho: as opções (Opt A ou orientação padrão) vão para o cliente, que responde;
     a padrão é agendada (com data) e, feita, fica Fornecidas."""
     PENDENTE = "Pendente"
-    OPCOES_ENVIADAS = "Opções enviadas"  # recebeu as opções e ainda não respondeu
-    DECIDINDO = "Decidindo"  # escolhendo entre a Opt A e a orientação padrão
+    OPCOES_ENVIADAS = "Opções enviadas"  # recebeu as opções (Opt A ou padrão) para escolher
+    SEM_RESPOSTA = "Sem resposta"  # recebeu as opções e ainda não respondeu
     OPTA = "Opt A"
     ESCOLHEU_PADRAO = "Escolheu padrão"  # quer a orientação padrão, ainda sem data
     AGENDADA = "Agendada"
