@@ -68,10 +68,10 @@ class TipoEvento(str, Enum):
 # Situações válidas por tipo de processo. Viram linhas da tabela `situacoes` na migration base;
 # o banco, e não o código, decide quais situações existem (FK composta em processos).
 SITUACOES: dict[TipoProcesso, list[str]] = {
-    TipoProcesso.OBT: ["Pagamento Pendente", "Boleto", "Credito", "Limbo", "Processando",
-                       "Cadastro", "Administrativo", "Pago", "Concluido"],
-    TipoProcesso.REN: ["Pagamento Pendente", "Boleto", "Credito", "Limbo", "Processando",
-                       "Cadastro", "Administrativo", "Entrevista", "Concluido"],
+    TipoProcesso.OBT: ["Pagamento Pendente", "Cadastro", "Boleto", "Credito", "Limbo", "Processando",
+                       "Administrativo", "Pago", "Concluido"],
+    TipoProcesso.REN: ["Pagamento Pendente", "Cadastro", "Boleto", "Credito", "Limbo", "Processando",
+                       "Administrativo", "Entrevista", "Concluido"],
     TipoProcesso.PASS: ["Pendente", "Pagamento Pendente", "Pago", "Boleto", "Pix",
                         "Processando", "Concluido"],
 }

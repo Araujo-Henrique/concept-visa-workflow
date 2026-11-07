@@ -391,6 +391,9 @@ def test_referencias_trazem_as_situacoes_na_ordem_do_fluxo(client):
     ref = client.get("/referencias").json()
     assert ref["situacoes"]["PASS"][0] == "Pendente" and ref["situacoes"]["OBT"][-1] == "Concluido"
     assert "Pix" in ref["situacoes"]["PASS"] and "Pix" not in ref["situacoes"]["OBT"]
+    # o cadastro vem logo depois do pagamento pendente (a rota de verdade do escritório)
+    assert ref["situacoes"]["OBT"][:3] == ["Pagamento Pendente", "Cadastro", "Boleto"]
+    assert ref["situacoes"]["REN"][:3] == ["Pagamento Pendente", "Cadastro", "Boleto"]
     assert ref["consulados"] == ["POA", "RIO", "BSB", "SP", "REC"] and ref["perfis"] == ["admin", "atendente", "leitor"]
 
 
