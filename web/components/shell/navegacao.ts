@@ -17,7 +17,7 @@ export const MENU: ItemMenu[] = [
   { href: "/processos", rotulo: "Processos", icone: Stamp, pronto: true },
   { href: "/clientes", rotulo: "Clientes", icone: Users, pronto: true },
   { href: "/agenda", rotulo: "Agenda", icone: CalendarDays, pronto: true },
-  { href: "/usuarios", rotulo: "Usuários", icone: ShieldCheck, exige: "administrar", pronto: false },
+  { href: "/usuarios", rotulo: "Usuários", icone: ShieldCheck, exige: "administrar", pronto: true },
 ];
 
 /** Item ativo: "/" só na raiz; os demais também nas subpáginas (/processos/12). */

@@ -27,7 +27,10 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - Identidade Concept Vistos: logo em vetor, azul `#1d9d9d`, tinta `#050510`, papel `#f5f5f5`, tema claro e
   escuro, animações decorativas (avião, pins, carimbo) que respeitam "reduzir movimento".
 
-Próximas fases: usuários e minha conta.
+- **Usuários** (só admin): a equipe como crachás de tripulação; criar (com gerador de senha e copiar), editar
+  nome e perfil, redefinir senha, desativar ou reativar o acesso (ninguém se desativa e a API sempre mantém um
+  admin ativo) e o histórico de cada usuário (a senha nunca aparece).
+- **Minha conta** (todos): o próprio crachá e a troca de senha (pede a atual).
 
 ## Como rodar
 

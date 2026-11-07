@@ -50,11 +50,11 @@ describe("menu lateral", () => {
     expect(menu.getByRole("link", { name: "Agenda" })).toBeInTheDocument();
   });
 
-  it("telas das próximas fases aparecem como 'em breve', sem link", () => {
+  it("todas as telas prontas: admin tem o link de Usuários e nada 'em breve'", () => {
     render(<Estrutura usuario={pessoa("admin")}>x</Estrutura>);
     const menu = menuPrincipal();
-    expect(menu.queryByRole("link", { name: /Usuários/ })).not.toBeInTheDocument(); // próxima fase
-    expect(menu.getAllByText("em breve").length).toBeGreaterThan(0);
+    expect(menu.getByRole("link", { name: "Usuários" })).toHaveAttribute("href", "/usuarios");
+    expect(menu.queryByText("em breve")).not.toBeInTheDocument();
   });
 
   it("a busca abre com Ctrl+K", async () => {

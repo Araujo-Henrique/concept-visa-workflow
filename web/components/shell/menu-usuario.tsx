@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronsUpDown, LogOut, Monitor, Moon, Pause, Sparkles, Sun } from "lucide-react";
+import { ChevronsUpDown, LogOut, Monitor, Moon, Pause, Sparkles, Sun, UserRound } from "lucide-react";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 
 import { sair } from "@/app/acoes/auth";
@@ -47,6 +48,11 @@ export function MenuUsuario({ usuario }: { usuario: Usuario }) {
           <span className="block text-sm font-semibold">{usuario.nome}</span>
           <span className="block truncate text-xs text-muted-foreground">{usuario.email}</span>
         </DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link href="/conta">
+            <UserRound /> Minha conta
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs text-muted-foreground">Tema</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
