@@ -107,12 +107,15 @@ class RENBase(BaseModel):
     status_rascunho: Rascunho = Rascunho.PENDENTE
     endereco: Texto | None = None
     codigo_rastreio: Texto | None = None
+    despachado_em: date | None = None  # vazio = ainda falta despachar
     observacao: Texto | None = None
 
     @model_validator(mode="after")
-    def _regras(self):
+    def _regras(self, info: ValidationInfo):
         if self.data_casv and self.consulado is None:
             raise ValueError("Com data de CASV, informe o consulado")
+        if self.despachado_em and self.despachado_em > date.today() and mexeu(info, "despachado_em"):
+            raise ValueError("A data do despacho não pode ser no futuro")
         return self
 
 

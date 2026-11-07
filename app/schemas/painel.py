@@ -38,7 +38,8 @@ class PainelREN(PainelBase):
     tipo: Literal["REN"]
     consulado: str | None
     data_casv: date | None
-    data_despacho: date | None
+    data_despacho: date | None  # prazo (CASV - 7)
+    despachado_em: date | None  # quando foi despachado; vazio = falta despachar
     codigo_rastreio: str | None
 
 
@@ -66,3 +67,4 @@ class AgendaItem(BaseModel):
     cliente: str
     situacao: str
     consulado: str | None
+    despachado_em: date | None = None  # só no evento "despacho": quando foi feito

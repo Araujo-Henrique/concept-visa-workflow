@@ -331,6 +331,34 @@ def test_agenda_lista_as_datas_do_periodo_em_ordem(client):
     assert agenda[0]["consulado"] == "SP" and agenda[0]["situacao"] == "Processando"
 
 
+def test_despacho_marcado_aparece_no_painel_e_na_agenda(client):
+    ana = novo_cliente(client, "Ana Souza")
+    ren = client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro", "consulado": "RIO",
+                                              "data_casv": "2026-11-20"}).json()  # prazo do despacho 13/11
+    assert ren["despachado_em"] is None
+
+    def painel(**f):
+        return [p["processo_id"] for p in client.get("/painel", params={"tipo": "REN", **f}).json()]
+
+    assert painel(despacho="pendente") == [ren["id"]] and painel(despacho="feito") == []
+    marcado = client.patch(f"/processos-ren/{ren['id']}", json={"despachado_em": "2026-11-05",
+                                                                "codigo_rastreio": "BR123"})
+    assert marcado.status_code == 200 and marcado.json()["despachado_em"] == "2026-11-05"
+    assert painel(despacho="pendente") == [] and painel(despacho="feito") == [ren["id"]]
+    assert client.get("/painel", params={"tipo": "REN"}).json()[0]["despachado_em"] == "2026-11-05"
+
+    agenda = client.get("/painel/agenda", params={"de": "2026-11-01", "ate": "2026-11-30"}).json()
+    assert {a["evento"]: a["despachado_em"] for a in agenda} == {"despacho": "2026-11-05", "casv": None}
+
+
+def test_despacho_nao_pode_ser_no_futuro(client):
+    ana = novo_cliente(client)
+    ren = client.post("/processos-ren", json={"cliente_id": ana["id"], "situacao": "Cadastro"}).json()
+    resposta = client.patch(f"/processos-ren/{ren['id']}", json={"despachado_em": "2999-01-01"})
+    assert resposta.status_code == 422
+    assert client.patch(f"/processos-ren/{ren['id']}", json={"despachado_em": None}).status_code == 200
+
+
 def test_agenda_recusa_periodo_invertido_ou_longo_demais(client):
     assert client.get("/painel/agenda", params={"de": "2026-11-30", "ate": "2026-11-01"}).status_code == 422
     assert client.get("/painel/agenda", params={"de": "2026-01-01", "ate": "2026-12-31"}).status_code == 422

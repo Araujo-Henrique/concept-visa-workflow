@@ -154,6 +154,8 @@ class ProcessoREN(Processo):
     data_casv: Mapped[date | None] = mapped_column(Date)
     # coluna gerada pelo próprio banco: despacho = CASV - 7 dias
     data_despacho: Mapped[date | None] = mapped_column(Date, Computed("data_casv - 7", persisted=True))
+    # quando foi despachado de verdade; vazio = ainda falta despachar (a data_despacho é só o prazo)
+    despachado_em: Mapped[date | None] = mapped_column(Date)
     docs: Mapped[DocsREN] = mapped_column(coluna_enum(DocsREN, "docs"), default=DocsREN.PENDENTE)
     status_rascunho: Mapped[Rascunho] = mapped_column(
         coluna_enum(Rascunho, "rascunho"), default=Rascunho.PENDENTE, server_default=Rascunho.PENDENTE.value)

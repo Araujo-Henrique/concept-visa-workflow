@@ -2,7 +2,7 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import func, literal, select, union_all
+from sqlalchemy import Date, func, literal, null, select, union_all
 
 from app.deps import Sessao
 from app.enums import Consulado, TipoProcesso
@@ -26,6 +26,7 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
            processo_id: int | None = None, cliente_id: int | None = None,
            data: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf"] | None = None,
            de: date | None = None, ate: date | None = None,
+           despacho: Literal["pendente", "feito"] | None = None,  # REN: falta despachar / já despachado
            limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     """Visão geral dos processos, uma linha por processo (a view vw_painel_processos).
     O cabeçalho `X-Total-Count` traz o total com os mesmos filtros, para a tela paginar.
@@ -55,6 +56,10 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
         filtros.append(painel.c.processo_id == processo_id)
     if cliente_id is not None:
         filtros.append(painel.c.cliente_id == cliente_id)
+    if despacho == "pendente":
+        filtros += [painel.c.despachado_em.is_(None), painel.c.data_despacho.is_not(None)]
+    elif despacho == "feito":
+        filtros.append(painel.c.despachado_em.is_not(None))
 
     total = sessao.scalar(select(func.count()).select_from(painel).where(*filtros))
     response.headers["X-Total-Count"] = str(total)
@@ -85,7 +90,9 @@ def agenda(sessao: Sessao, de: date, ate: date):
         raise HTTPException(status_code=422, detail=f"Período máximo: {MAX_DIAS_AGENDA} dias")
     partes = [
         select(painel.c[coluna].label("data"), literal(evento).label("evento"), painel.c.processo_id,
-               painel.c.tipo, painel.c.cliente, painel.c.situacao, painel.c.consulado)
+               painel.c.tipo, painel.c.cliente, painel.c.situacao, painel.c.consulado,
+               # só o despacho tem "feito": os outros eventos levam nulo
+               (painel.c.despachado_em if evento == "despacho" else null().cast(Date)).label("despachado_em"))
         .where(painel.c[coluna].between(de, ate))
         for coluna, evento in DATAS_DA_AGENDA.items()]
     uniao = union_all(*partes).subquery()
