@@ -107,4 +107,17 @@ export type Referencias = {
   monitoramento: string[];
   docs_ren: string[];
   perfis: Perfil[];
+  usuarios: { id: number; nome: string }[];
 };
+
+export type Cliente = {
+  id: number;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  grupo: string | null;
+};
+
+export type ClienteLista = Cliente & { n_processos: number };
+
+export type UsuarioResumo = { id: number; nome: string };

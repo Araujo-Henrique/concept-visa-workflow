@@ -2,24 +2,26 @@
 
 import { useState } from "react";
 
-import { PaginaDados, PaginaHistorico, PaginaPessoas } from "@/components/passaporte/paginas";
+import { EditarDados } from "@/components/passaporte/editar-dados";
+import { PaginaPessoas } from "@/components/passaporte/pagina-pessoas";
+import { PaginaDados, PaginaHistorico } from "@/components/passaporte/paginas";
 import { direcaoEntre, Passaporte, type IdPagina } from "@/components/passaporte/passaporte";
 import { RotaSituacao } from "@/components/passaporte/rota-situacao";
-import type { Evento, LinhaPainel, ProcessoDetalhe } from "@/lib/tipos";
+import type { Evento, LinhaPainel, ProcessoDetalhe, Referencias } from "@/lib/tipos";
 
 /** Detalhe do processo: o passaporte (esquerda) e a rota de situações (direita), conversando entre si. */
 export function VistaProcesso({
   linha,
   detalhe,
   eventos,
-  situacoes,
-  podeEscrever,
+  referencias,
+  permissoes,
 }: {
   linha: LinhaPainel;
   detalhe: ProcessoDetalhe;
   eventos: Evento[];
-  situacoes: string[];
-  podeEscrever: boolean;
+  referencias: Referencias;
+  permissoes: { escrever: boolean; apagar: boolean };
 }) {
   const [pagina, setPagina] = useState<IdPagina>("dados");
   const [direcao, setDirecao] = useState(1);
@@ -40,12 +42,24 @@ export function VistaProcesso({
         direcao={direcao}
         aoMudar={irPara}
         paginas={{
-          dados: <PaginaDados linha={linha} detalhe={{ ...detalhe, situacao: linha.situacao }} />,
+          dados: (
+            <PaginaDados
+              linha={linha}
+              detalhe={{ ...detalhe, situacao: linha.situacao }}
+              acao={
+                permissoes.escrever && (
+                  <EditarDados tipo={linha.tipo} detalhe={detalhe} referencias={referencias} />
+                )
+              }
+            />
+          ),
           pessoas: (
             <PaginaPessoas
+              processoId={linha.processo_id}
               solicitantes={detalhe.solicitantes}
-              podeEscrever={podeEscrever}
               comDs160={linha.tipo !== "PASS"}
+              statusDs={referencias.status_ds}
+              permissoes={permissoes}
             />
           ),
           historico: <PaginaHistorico eventos={eventos} novo={novoCarimbo} />,
@@ -54,9 +68,9 @@ export function VistaProcesso({
       <RotaSituacao
         processoId={linha.processo_id}
         atual={linha.situacao}
-        situacoes={situacoes}
+        situacoes={referencias.situacoes[linha.tipo]}
         visitadas={visitadas}
-        podeMudar={podeEscrever}
+        podeMudar={permissoes.escrever}
         aoCarimbar={(id) => {
           setNovoCarimbo(id); // o carimbo novo "bate" na página
           irPara("historico");

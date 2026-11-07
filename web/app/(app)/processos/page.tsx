@@ -1,4 +1,6 @@
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { AreaProcessos } from "@/components/processos/area-processos";
@@ -6,6 +8,7 @@ import { BarraFiltros } from "@/components/processos/barra-filtros";
 import { Paginacao } from "@/components/processos/paginacao";
 import { Quadro, type Coluna } from "@/components/processos/quadro";
 import { TabelaProcessos } from "@/components/processos/tabela";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiGet, apiLista } from "@/lib/api";
 import { pode } from "@/lib/permissoes";
@@ -20,15 +23,33 @@ const CARTOES_POR_COLUNA = 25;
 export default function PaginaProcessos({ searchParams }: PageProps<"/processos">) {
   return (
     <div className="mx-auto max-w-[1400px]">
-      <header className="mb-6">
-        <h1 className="text-3xl font-extrabold">Processos</h1>
-        <p className="mt-1 text-muted-foreground">Todos os embarques, do cadastro ao carimbo.</p>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold">Processos</h1>
+          <p className="mt-1 text-muted-foreground">Todos os embarques, do cadastro ao carimbo.</p>
+        </div>
+        <Suspense>
+          <BotaoNovoProcesso />
+        </Suspense>
       </header>
       {/* filtros vêm da URL (dado da requisição): tudo abaixo chega por streaming */}
       <Suspense fallback={<Esqueleto />}>
         <Conteudo searchParams={searchParams} />
       </Suspense>
     </div>
+  );
+}
+
+/** Só quem pode escrever vê o botão (a API recusaria de qualquer forma). */
+async function BotaoNovoProcesso() {
+  const usuario = await usuarioAtual();
+  if (!pode(usuario.perfil, "escrever")) return null;
+  return (
+    <Button asChild className="h-11">
+      <Link href="/processos/novo">
+        <Plus className="size-4" /> Novo processo
+      </Link>
+    </Button>
   );
 }
 

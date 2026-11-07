@@ -15,7 +15,7 @@ export type ItemMenu = {
 export const MENU: ItemMenu[] = [
   { href: "/", rotulo: "Início", icone: Home, pronto: true },
   { href: "/processos", rotulo: "Processos", icone: Stamp, pronto: true },
-  { href: "/clientes", rotulo: "Clientes", icone: Users, pronto: false },
+  { href: "/clientes", rotulo: "Clientes", icone: Users, pronto: true },
   { href: "/agenda", rotulo: "Agenda", icone: CalendarDays, pronto: false },
   { href: "/usuarios", rotulo: "Usuários", icone: ShieldCheck, exige: "administrar", pronto: false },
 ];

@@ -15,10 +15,16 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - **Detalhe em passaporte**: capa, página de dados, pessoas com DS-160 (resultado editável) e carimbos do
   histórico; a rota de situações ao lado "carimba" a mudança.
 - **Busca global** (Ctrl+K): número do processo ou nome do cliente.
+- **Clientes**: lista em ordem alfabética com busca única (nome, e-mail ou telefone), cadastro e edição, e a
+  ficha do cliente com os processos dele ("histórico de viagens"), telefone formatado e link do WhatsApp.
+- **Novo processo**: assistente em cinco passos (cliente, tipo, dados, pessoas, embarque); dá para cadastrar o
+  cliente no meio do caminho. Avisa as regras (consulado com data, orientação agendada com data) antes de enviar.
+- **Editar o processo** no passaporte: dados (só o que mudou vai para a API), pessoas (incluir, trocar o titular,
+  resultado) e códigos DS-160 (incluir e mudar o status). Remover pessoa ou código é só do admin.
 - Identidade Concept Vistos: logo em vetor, azul `#1d9d9d`, tinta `#050510`, papel `#f5f5f5`, tema claro e
   escuro, animações decorativas (avião, pins, carimbo) que respeitam "reduzir movimento".
 
-Próximas fases: agenda, clientes, novo processo (e edição dos dados) e usuários.
+Próximas fases: agenda, início completo (painel de embarque), usuários e minha conta.
 
 ## Como rodar
 

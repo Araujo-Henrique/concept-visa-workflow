@@ -77,8 +77,8 @@ async function Conteudo({ params }: { params: PageProps<"/processos/[id]">["para
         linha={linha}
         detalhe={detalhe}
         eventos={eventos}
-        situacoes={referencias.situacoes[linha.tipo]}
-        podeEscrever={pode(usuario.perfil, "escrever")}
+        referencias={referencias}
+        permissoes={{ escrever: pode(usuario.perfil, "escrever"), apagar: pode(usuario.perfil, "apagar") }}
       />
     </>
   );

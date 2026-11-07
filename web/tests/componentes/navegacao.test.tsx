@@ -46,7 +46,8 @@ describe("menu lateral", () => {
     const menu = menuPrincipal();
     expect(menu.getByRole("link", { name: "Início" })).toHaveAttribute("aria-current", "page");
     expect(menu.getByRole("link", { name: "Processos" })).not.toHaveAttribute("aria-current");
-    expect(menu.queryByRole("link", { name: /Clientes/ })).not.toBeInTheDocument(); // próxima fase
+    expect(menu.getByRole("link", { name: "Clientes" })).toBeInTheDocument();
+    expect(menu.queryByRole("link", { name: /Agenda/ })).not.toBeInTheDocument(); // próxima fase
     expect(menu.getAllByText("em breve").length).toBeGreaterThan(0);
   });
 

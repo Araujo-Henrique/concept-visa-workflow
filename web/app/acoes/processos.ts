@@ -3,23 +3,26 @@
 import { refresh } from "next/cache";
 
 import { apiEnviar, apiLista } from "@/lib/api";
-import { ErroApi } from "@/lib/erros";
-import type { Evento, LinhaPainel } from "@/lib/tipos";
+import { tentar } from "@/lib/resultado";
+import type {
+  Evento,
+  Formulario,
+  LinhaPainel,
+  ProcessoDetalhe,
+  Solicitante,
+  TipoProcesso,
+} from "@/lib/tipos";
 
 /**
  * Mutações chamadas pelas telas. Cada uma é tratada como uma rota pública: quem decide se pode é a API
  * (perfil lido do banco a cada chamada). Erros de regra voltam como texto para a tela mostrar.
  */
-export type Resultado<T = null> = { ok: true; dados: T } | { ok: false; erro: string };
 
-async function tentar<T>(acao: () => Promise<T>): Promise<Resultado<T>> {
-  try {
-    return { ok: true, dados: await acao() };
-  } catch (erro) {
-    if (erro instanceof ErroApi) return { ok: false, erro: erro.message };
-    throw erro; // redirect (sessão expirada) e erros inesperados seguem o fluxo normal do Next
-  }
-}
+const ROTA: Record<TipoProcesso, string> = {
+  OBT: "/processos-obt",
+  REN: "/processos-ren",
+  PASS: "/processos-pass",
+};
 
 /** Muda a situação (gera o "carimbo" no histórico). Motivo é obrigatório ao sair de Concluído. */
 export async function mudarSituacao(processoId: number, situacao: string, motivo?: string) {
@@ -33,11 +36,61 @@ export async function mudarSituacao(processoId: number, situacao: string, motivo
   return r;
 }
 
-export async function mudarResultado(solicitanteId: number, resultado: string) {
-  const r = await tentar(() => apiEnviar("PATCH", `/solicitantes/${solicitanteId}`, { resultado }));
+/** Cria o processo (o titular, os extras e o evento "criado" nascem juntos, numa transação da API). */
+export async function criarProcesso(tipo: TipoProcesso, corpo: Record<string, unknown>) {
+  return tentar(async () => (await apiEnviar<ProcessoDetalhe>("POST", ROTA[tipo], corpo))!);
+}
+
+/** Edita os dados (só o que mudou). A situação não muda por aqui: muda pela rota do processo. */
+export async function editarProcesso(
+  tipo: TipoProcesso,
+  processoId: number,
+  mudancas: Record<string, unknown>,
+) {
+  const r = await tentar(() => apiEnviar("PATCH", `${ROTA[tipo]}/${processoId}`, mudancas));
   if (r.ok) refresh();
   return r;
 }
+
+// ---------------------------------------------------------------- pessoas e DS-160
+
+async function eAtualizar<T>(acao: () => Promise<T>) {
+  const r = await tentar(acao);
+  if (r.ok) refresh();
+  return r;
+}
+
+export async function mudarResultado(solicitanteId: number, resultado: string) {
+  return eAtualizar(() => apiEnviar("PATCH", `/solicitantes/${solicitanteId}`, { resultado }));
+}
+
+export async function adicionarSolicitante(processoId: number, nome: string) {
+  return eAtualizar(() => apiEnviar<Solicitante>("POST", `/processos/${processoId}/solicitantes`, { nome }));
+}
+
+export async function tornarTitular(solicitanteId: number) {
+  return eAtualizar(() => apiEnviar("POST", `/solicitantes/${solicitanteId}/titular`));
+}
+
+export async function removerSolicitante(solicitanteId: number) {
+  return eAtualizar(() => apiEnviar("DELETE", `/solicitantes/${solicitanteId}`));
+}
+
+export async function adicionarFormulario(solicitanteId: number, codigo: string, status: string) {
+  return eAtualizar(() =>
+    apiEnviar<Formulario>("POST", `/solicitantes/${solicitanteId}/formularios-ds160`, { codigo, status }),
+  );
+}
+
+export async function mudarStatusFormulario(formularioId: number, status: string) {
+  return eAtualizar(() => apiEnviar("PATCH", `/formularios-ds160/${formularioId}`, { status }));
+}
+
+export async function removerFormulario(formularioId: number) {
+  return eAtualizar(() => apiEnviar("DELETE", `/formularios-ds160/${formularioId}`));
+}
+
+// ---------------------------------------------------------------- busca global
 
 export type ItemBusca = Pick<LinhaPainel, "processo_id" | "tipo" | "cliente" | "situacao" | "n_solicitantes">;
 
