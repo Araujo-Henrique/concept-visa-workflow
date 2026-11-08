@@ -23,6 +23,15 @@ TABELAS = "eventos, formularios_ds160, solicitantes, processo_obt, processo_ren,
           "processos, clientes, usuarios"
 
 
+@pytest.fixture(autouse=True)
+def limites_zerados():
+    """Os limites de requisição contam na memória do processo: cada teste começa do zero."""
+    from app import limites
+    limites.zerar_tudo()
+    yield
+    limites.zerar_tudo()
+
+
 @pytest.fixture(scope="session")
 def engine():
     url = os.environ.get("TEST_DATABASE_URL")

@@ -4,7 +4,8 @@ import { ErroApi } from "@/lib/erros";
 // A camada que fala com a API Python. O token sai do cookie httpOnly (mock de next/headers) e o
 // redirecionamento do Next (que lança uma exceção) vira um erro que o teste consegue ler.
 const mockCookies = { get: jest.fn() };
-jest.mock("next/headers", () => ({ cookies: async () => mockCookies }));
+const mockHeaders = new Headers();
+jest.mock("next/headers", () => ({ cookies: async () => mockCookies, headers: async () => mockHeaders }));
 jest.mock("next/navigation", () => ({
   redirect: (destino: string) => {
     throw new Error(`REDIRECT:${destino}`);
@@ -60,6 +61,21 @@ describe("chamada autenticada", () => {
     expect(url).toBe("http://api.teste:8000/auth/eu");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer token-abc");
     expect(init.cache).toBe("no-store");
+  });
+
+  it("repassa à API o IP de quem abriu o site (o último do X-Forwarded-For)", async () => {
+    mockHeaders.set("x-forwarded-for", "10.9.9.9, 203.0.113.7");
+    fetchMock.mockResolvedValue(resposta({ ok: true }));
+    await apiGet("/auth/eu");
+    expect((ultimaChamada()[1].headers as Record<string, string>)["X-Cliente-IP"]).toBe("203.0.113.7");
+    mockHeaders.delete("x-forwarded-for");
+  });
+
+  it("muitas requisições (429): repassa a espera dita pela API", async () => {
+    fetchMock.mockResolvedValue(
+      resposta({ detail: "Muitas tentativas. Tente de novo em 30 segundos" }, { status: 429 }),
+    );
+    await expect(apiGet("/painel")).rejects.toThrow("Tente de novo em 30 segundos");
   });
 
   it("sem cookie de sessão nem chama a API: vai para o login", async () => {

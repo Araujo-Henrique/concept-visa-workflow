@@ -16,7 +16,9 @@ const PADRAO: Record<number, string> = {
   403: "Seu perfil não permite esta ação.",
   404: "Não encontrei esse registro.",
   409: "Conflito: o registro mudou ou já existe.",
+  413: "Os dados enviados são grandes demais.",
   422: "Confira os dados informados.",
+  429: "Muitas tentativas seguidas. Aguarde um pouco e tente de novo.",
   500: "A API teve um erro interno ao buscar esses dados.",
   503: "O servidor de dados está indisponível. Tente de novo em instantes.",
 };

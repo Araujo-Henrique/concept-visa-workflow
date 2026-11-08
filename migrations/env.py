@@ -13,7 +13,8 @@ from app.db import Base, url_do_banco
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # sem desligar os loggers que já existem (ex.: o registro de acessos, quando as migrations rodam no mesmo processo)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

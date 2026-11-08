@@ -2,7 +2,8 @@ import { entrar, renovarSessao, sair } from "@/app/acoes/auth";
 
 // A ação de login roda no servidor do Next: troca e-mail e senha por um token e o guarda num cookie httpOnly.
 const mockCookies = { set: jest.fn(), delete: jest.fn(), get: jest.fn() };
-jest.mock("next/headers", () => ({ cookies: async () => mockCookies }));
+const mockHeaders = new Headers();
+jest.mock("next/headers", () => ({ cookies: async () => mockCookies, headers: async () => mockHeaders }));
 jest.mock("next/navigation", () => ({
   redirect: (destino: string) => {
     throw new Error(`REDIRECT:${destino}`);
@@ -121,6 +122,26 @@ describe("entrar: login com sucesso", () => {
     const [urlEu, initEu] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(urlEu).toBe("http://api.teste:8000/auth/eu");
     expect((initEu.headers as Record<string, string>).Authorization).toBe("Bearer jwt-secreto");
+  });
+});
+
+describe("entrar: proteção contra quem testa senhas", () => {
+  it("manda o IP de quem tenta entrar, para a API limitar as tentativas", async () => {
+    mockHeaders.set("x-forwarded-for", "203.0.113.7");
+    fetchMock.mockResolvedValueOnce(resposta(TOKEN)).mockResolvedValueOnce(resposta({ nome: "Ana" }));
+    await entrar(undefined, form("ana@exemplo.com", "senha-longa-123"));
+    const [, initLogin] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((initLogin.headers as Record<string, string>)["X-Cliente-IP"]).toBe("203.0.113.7");
+    mockHeaders.delete("x-forwarded-for");
+  });
+
+  it("travado por excesso de tentativas: mostra quanto tempo esperar", async () => {
+    fetchMock.mockResolvedValue(
+      resposta({ detail: "Muitas tentativas. Tente de novo em 15 minutos" }, { status: 429 }),
+    );
+    const r = await entrar(undefined, form("ana@exemplo.com", "senha-longa-123"));
+    expect(r).toEqual({ erro: "Muitas tentativas. Tente de novo em 15 minutos" });
+    expect(mockCookies.set).not.toHaveBeenCalled();
   });
 });
 

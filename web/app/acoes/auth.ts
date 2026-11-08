@@ -8,6 +8,7 @@ import { urlDaApi } from "@/lib/api";
 import { COOKIE_SESSAO } from "@/lib/constantes";
 import { apagarSessao, gravarSessao } from "@/lib/cookies-sessao";
 import { mensagemDeErro } from "@/lib/erros";
+import { cabecalhoDoCliente } from "@/lib/ip-cliente";
 
 export type EstadoLogin = { erro?: string; ok?: boolean; primeiroNome?: string } | undefined;
 
@@ -33,7 +34,8 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
   try {
     resposta = await fetch(`${base}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // o IP de quem tenta entrar: a API limita as tentativas por IP
+      headers: { "Content-Type": "application/json", ...(await cabecalhoDoCliente()) },
       body: JSON.stringify(dados.data),
       cache: "no-store",
     });
@@ -57,7 +59,7 @@ export async function entrar(_anterior: EstadoLogin, form: FormData): Promise<Es
 
   // nome para o carimbo de boas-vindas (o perfil é sempre lido de novo pela API em cada tela)
   const eu = await fetch(`${base}/auth/eu`, {
-    headers: { Authorization: `Bearer ${access_token}` },
+    headers: { Authorization: `Bearer ${access_token}`, ...(await cabecalhoDoCliente()) },
     cache: "no-store",
   }).then(
     (r) => (r.ok ? r.json() : null),
@@ -85,7 +87,7 @@ export async function renovarSessao(): Promise<Renovacao> {
   try {
     resposta = await fetch(`${urlDaApi()}/auth/renovar`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, ...(await cabecalhoDoCliente()) },
       cache: "no-store",
     });
   } catch {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { COOKIE_SESSAO } from "@/lib/constantes";
 import { ErroApi, mensagemDeErro } from "@/lib/erros";
+import { cabecalhoDoCliente } from "@/lib/ip-cliente";
 
 /**
  * Única porta de saída para a API Python. Roda só no servidor do Next: o token sai do cookie httpOnly
@@ -36,6 +37,7 @@ async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes
 
   // fora do try: API_URL ausente é erro de configuração (aparece com a mensagem clara), não "API fora do ar"
   const base = urlDaApi();
+  const cliente = await cabecalhoDoCliente();
 
   let resposta: Response;
   try {
@@ -43,6 +45,7 @@ async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes
       method: metodo,
       headers: {
         Authorization: `Bearer ${token}`,
+        ...cliente,
         ...(corpo !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       body: corpo !== undefined ? JSON.stringify(corpo) : undefined,

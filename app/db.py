@@ -32,8 +32,24 @@ def url_do_banco() -> str:
     return url
 
 
+def _inteiro(nome: str, padrao: int) -> int:
+    return int(os.environ.get(nome, str(padrao)))
+
+
 def criar_engine(url: str | None = None):
-    return create_engine(url or url_do_banco(), pool_pre_ping=True)
+    """Pool com tamanho fixo e prazos: a API nunca abre mais que DB_POOL + DB_POOL_EXTRA conexões, quem não
+    consegue uma em DB_ESPERA_CONEXAO segundos recebe erro (em vez de enfileirar para sempre) e nenhuma consulta
+    passa de DB_TEMPO_MAXIMO_CONSULTA_MS no Postgres (statement_timeout): uma consulta pesada é cortada antes de
+    travar o banco para todo mundo."""
+    tempo_maximo = _inteiro("DB_TEMPO_MAXIMO_CONSULTA_MS", 15000)
+    return create_engine(
+        url or url_do_banco(),
+        pool_pre_ping=True,
+        pool_size=_inteiro("DB_POOL", 5),
+        max_overflow=_inteiro("DB_POOL_EXTRA", 5),
+        pool_timeout=_inteiro("DB_ESPERA_CONEXAO", 10),
+        connect_args={"options": f"-c statement_timeout={tempo_maximo}"},
+    )
 
 
 Session = sessionmaker(expire_on_commit=False)

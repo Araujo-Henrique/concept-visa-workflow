@@ -110,6 +110,34 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
 - `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.
 - Processos e eventos registram quem os criou ou alterou.
 
+## Proteções contra abuso
+Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). Os números vêm do `.env`.
+
+| Proteção | Padrão | Variável |
+| --- | --- | --- |
+| Tentativas de login por IP (certas ou erradas) | 10 por minuto | `LIMITE_LOGIN_POR_MINUTO` |
+| Senhas erradas por conta: depois disso a conta trava, mesmo com a senha certa | 5 em 15 minutos | `LIMITE_FALHAS_DE_SENHA` |
+| Senha atual errada na troca de senha (mesma regra, por usuário) | 5 em 15 minutos | `LIMITE_FALHAS_DE_SENHA` |
+| Requisições por IP, em qualquer rota (um escritório inteiro pode ter um IP só) | 600 por minuto | `LIMITE_REQUISICOES_POR_MINUTO` |
+| Tamanho do corpo da requisição | 1024 KB | `LIMITE_CORPO_KB` |
+| Tempo máximo de uma consulta no Postgres (`statement_timeout`) | 15 s | `DB_TEMPO_MAXIMO_CONSULTA_MS` |
+| Conexões com o banco (pool + extras) e espera por uma livre | 5 + 5, 10 s | `DB_POOL`, `DB_POOL_EXTRA`, `DB_ESPERA_CONEXAO` |
+| Itens por página nas listagens | 200 | (fixo nas rotas) |
+
+- Passou do limite: **429** com `Retry-After` e "Muitas tentativas. Tente de novo em N minutos". Corpo grande: 413.
+  Consulta cortada: 503 "A consulta demorou demais". Pool esgotado: 503 "Servidor ocupado".
+- **IP de quem acessa:** quem chama a API é o servidor do Next, então o IP da conexão é sempre 127.0.0.1. O Next
+  repassa o IP real no cabeçalho `X-Cliente-IP` (o último do `X-Forwarded-For`, que é o que o ngrok/nginx viu) e
+  a API só acredita nele quando a conexão vem de um endereço de `API_PROXIES_CONFIAVEIS` (padrão `127.0.0.1,::1`).
+  Por isso a API deve escutar só em `127.0.0.1` (o padrão do uvicorn): exposta direto, o limite continua valendo
+  pelo IP da conexão, mas o certo é só o Next falar com ela.
+- Falhas e bloqueios de login vão para o log (`concept.acesso`) com o IP e o e-mail mascarado (`a***@dominio.com`).
+- `API_DOCS=false` tira o `/docs` e o `/openapi.json` (use em produção).
+- A contagem fica na memória da API: vale para **um processo** (o nosso caso). Com vários workers ou servidores,
+  cada um contaria por si; aí a contagem precisa ir para o Redis. Reiniciar a API zera as contagens.
+- O front manda cabeçalhos de segurança em toda página (`web/next.config.ts`): sem iframe de outro site
+  (`X-Frame-Options`, `frame-ancestors`), `nosniff`, `Referrer-Policy`, HSTS e `Permissions-Policy`.
+
 ## Autorização por perfil
 O perfil define o que cada pessoa pode fazer, escolhido pelo método HTTP numa regra única (`app/main.py`),
 então uma rota nova já nasce protegida (há um teste que percorre todas as rotas para garantir isso).
