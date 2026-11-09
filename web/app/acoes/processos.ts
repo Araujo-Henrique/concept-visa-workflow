@@ -37,8 +37,8 @@ export async function mudarSituacao(processoId: number, situacao: string, motivo
 }
 
 /** Cria o processo (o titular, os extras e o evento "criado" nascem juntos, numa transação da API). */
-export async function criarProcesso(tipo: TipoProcesso, corpo: Record<string, unknown>) {
-  return tentar(async () => (await apiEnviar<ProcessoDetalhe>("POST", ROTA[tipo], corpo))!);
+export async function criarProcesso(tipo: TipoProcesso, corpo: Record<string, unknown>, chave?: string) {
+  return tentar(async () => (await apiEnviar<ProcessoDetalhe>("POST", ROTA[tipo], corpo, chave))!);
 }
 
 /** Edita os dados (só o que mudou). A situação não muda por aqui: muda pela rota do processo. */

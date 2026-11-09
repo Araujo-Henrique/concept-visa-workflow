@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { auditoriaDoUsuario, criarUsuario, editarUsuario, redefinirSenha } from "@/app/acoes/usuarios";
+import { useChaveDeIdempotencia } from "@/lib/chave-idempotencia";
 import { CampoTexto } from "@/components/formularios/campos";
 import { CampoSenha } from "@/components/usuarios/campo-senha";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,7 @@ function FormUsuario({ usuario, aoFechar }: { usuario?: Usuario | null; aoFechar
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [salvando, iniciar] = useTransition();
+  const chave = useChaveDeIdempotencia();
 
   const salvar = () => {
     if (usuario) {
@@ -141,8 +143,12 @@ function FormUsuario({ usuario, aoFechar }: { usuario?: Usuario | null; aoFechar
     setErros(encontrados);
     if (Object.keys(encontrados).length) return;
     iniciar(async () => {
-      const r = await criarUsuario({ nome: nome.trim(), email: email.trim().toLowerCase(), perfil, senha });
+      const r = await criarUsuario(
+        { nome: nome.trim(), email: email.trim().toLowerCase(), perfil, senha },
+        chave.atual(),
+      );
       if (r.ok) {
+        chave.renovar();
         toast.success("Usuário criado", { description: `${r.dados.nome} já pode entrar.` });
         aoFechar();
       } else setErroGeral(r.erro);

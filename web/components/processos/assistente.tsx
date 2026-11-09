@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { buscarClientes } from "@/app/acoes/clientes";
 import { criarProcesso } from "@/app/acoes/processos";
+import { useChaveDeIdempotencia } from "@/lib/chave-idempotencia";
 import { FormCliente } from "@/components/clientes/form-cliente";
 import { CampoSelecao } from "@/components/formularios/campos";
 import { FormDados } from "@/components/processos/form-dados";
@@ -57,6 +58,7 @@ export function Assistente({
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [emitido, setEmitido] = useState<number | null>(null);
   const [emitindo, iniciar] = useTransition();
+  const chave = useChaveDeIdempotencia();
 
   const escolherTipo = (t: TipoProcesso) => {
     if (t !== tipo) {
@@ -79,11 +81,16 @@ export function Assistente({
     if (!cliente || !tipo) return;
     setErroGeral(null);
     iniciar(async () => {
-      const r = await criarProcesso(tipo, corpoProcessoNovo(tipo, cliente.id, situacao, valores, extras));
+      const r = await criarProcesso(
+        tipo,
+        corpoProcessoNovo(tipo, cliente.id, situacao, valores, extras),
+        chave.atual(),
+      );
       if (!r.ok) {
         setErroGeral(r.erro);
         return;
       }
+      chave.renovar();
       setEmitido(r.dados.id);
       setTimeout(() => router.push(`/processos/${r.dados.id}`), 1300); // tempo do carimbo "emitido"
     });

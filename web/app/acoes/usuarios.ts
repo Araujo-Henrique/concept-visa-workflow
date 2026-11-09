@@ -9,8 +9,11 @@ import type { RegistroAuditoria } from "@/lib/usuarios";
 
 // Administração de usuários: a API só aceita de quem tem o perfil admin (403 para os demais).
 
-export async function criarUsuario(corpo: { nome: string; email: string; perfil: string; senha: string }) {
-  const r = await tentar(async () => (await apiEnviar<Usuario>("POST", "/usuarios", corpo))!);
+export async function criarUsuario(
+  corpo: { nome: string; email: string; perfil: string; senha: string },
+  chave?: string,
+) {
+  const r = await tentar(async () => (await apiEnviar<Usuario>("POST", "/usuarios", corpo, chave))!);
   if (r.ok) refresh();
   return r;
 }

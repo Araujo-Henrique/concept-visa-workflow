@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { criarCliente, editarCliente } from "@/app/acoes/clientes";
+import { useChaveDeIdempotencia } from "@/lib/chave-idempotencia";
 import { CampoTexto } from "@/components/formularios/campos";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -35,6 +36,7 @@ export function FormCliente({
   const [erros, setErros] = useState<Erros>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [salvando, iniciar] = useTransition();
+  const chave = useChaveDeIdempotencia();
   const mudar = (campo: string) => (v: string) => setValores((atual) => ({ ...atual, [campo]: v }));
 
   function salvar() {
@@ -50,9 +52,11 @@ export function FormCliente({
               Object.entries(corpo).filter(([k, v]) => v !== (cliente[k as keyof Cliente] ?? null)),
             ),
           )
-        : await criarCliente(corpo);
-      if (r.ok) aoSalvar(r.dados);
-      else setErroGeral(r.erro.includes("Já existe") ? "Já existe um cliente com esse nome." : r.erro);
+        : await criarCliente(corpo, chave.atual());
+      if (r.ok) {
+        chave.renovar();
+        aoSalvar(r.dados);
+      } else setErroGeral(r.erro.includes("Já existe") ? "Já existe um cliente com esse nome." : r.erro);
     });
   }
 

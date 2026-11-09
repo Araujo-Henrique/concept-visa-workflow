@@ -29,9 +29,18 @@ export function montarCaminho(caminho: string, params?: Parametros): string {
   return qs ? `${caminho}?${qs}` : caminho;
 }
 
-type Opcoes = { metodo?: "GET" | "POST" | "PATCH" | "DELETE"; corpo?: unknown; params?: Parametros };
+type Opcoes = {
+  metodo?: "GET" | "POST" | "PATCH" | "DELETE";
+  corpo?: unknown;
+  params?: Parametros;
+  /** Idempotency-Key: o mesmo código reenviado não cria duas vezes (veja lib/chave-idempotencia.ts). */
+  chave?: string;
+};
 
-async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes = {}): Promise<Response> {
+async function chamar(
+  caminho: string,
+  { metodo = "GET", corpo, params, chave }: Opcoes = {},
+): Promise<Response> {
   const token = (await cookies()).get(COOKIE_SESSAO)?.value;
   if (!token) redirect("/login?expirou=1"); // o cookie some quando a sessão vence
 
@@ -46,6 +55,7 @@ async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes
       headers: {
         Authorization: `Bearer ${token}`,
         ...cliente,
+        ...(chave ? { "Idempotency-Key": chave } : {}),
         ...(corpo !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
@@ -93,7 +103,8 @@ export async function apiEnviar<T = unknown>(
   metodo: "POST" | "PATCH" | "DELETE",
   caminho: string,
   corpo?: unknown,
+  chave?: string,
 ): Promise<T | null> {
-  const resposta = await chamar(caminho, { metodo, corpo });
+  const resposta = await chamar(caminho, { metodo, corpo, chave });
   return resposta.status === 204 ? null : ((await resposta.json()) as T);
 }

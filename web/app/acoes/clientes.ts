@@ -7,8 +7,8 @@ import { tentar } from "@/lib/resultado";
 import type { Cliente, ClienteLista } from "@/lib/tipos";
 
 /** Cadastra um cliente. Nome repetido (sem diferenciar maiúsculas) a API recusa com 409. */
-export async function criarCliente(corpo: Record<string, unknown>) {
-  return tentar(async () => (await apiEnviar<Cliente>("POST", "/clientes", corpo))!);
+export async function criarCliente(corpo: Record<string, unknown>, chave?: string) {
+  return tentar(async () => (await apiEnviar<Cliente>("POST", "/clientes", corpo, chave))!);
 }
 
 export async function editarCliente(clienteId: number, mudancas: Record<string, unknown>) {

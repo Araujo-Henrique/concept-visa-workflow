@@ -162,6 +162,20 @@ describe("apiEnviar", () => {
     expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
 
+  it("com chave, manda o cabeçalho Idempotency-Key (o mesmo código reenviado não cria duas vezes)", async () => {
+    fetchMock.mockResolvedValue(resposta({ id: 9 }, { status: 201 }));
+    await apiEnviar("POST", "/clientes", { nome: "Ana" }, "chave-do-formulario-1");
+    expect((ultimaChamada()[1].headers as Record<string, string>)["Idempotency-Key"]).toBe(
+      "chave-do-formulario-1",
+    );
+  });
+
+  it("sem chave, não manda o cabeçalho", async () => {
+    fetchMock.mockResolvedValue(resposta({ id: 9 }, { status: 201 }));
+    await apiEnviar("POST", "/clientes", { nome: "Ana" });
+    expect((ultimaChamada()[1].headers as Record<string, string>)["Idempotency-Key"]).toBeUndefined();
+  });
+
   it("204 (sem conteúdo) devolve null", async () => {
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
     expect(await apiEnviar("DELETE", "/clientes/1")).toBeNull();

@@ -65,6 +65,7 @@ describe("Usuários", () => {
     await userEvent.click(dialogo.getByRole("button", { name: "Criar usuário" }));
     expect(criar).toHaveBeenCalledWith(
       expect.objectContaining({ nome: "Dora", email: "dora@exemplo.com", perfil: "leitor" }),
+      expect.stringMatching(/^[A-Za-z0-9._:-]{8,80}$/), // a chave de idempotência do formulário
     );
   });
 });
