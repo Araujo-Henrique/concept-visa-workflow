@@ -13,6 +13,7 @@ import type { Evento, LinhaPainel, ProcessoDetalhe, Referencias } from "@/lib/ti
 /** Detalhe do processo: o passaporte (esquerda) e a rota de situações (direita), conversando entre si. */
 export function VistaProcesso({
   linha,
+  emailCliente,
   detalhe,
   eventos,
   referencias,
@@ -22,6 +23,8 @@ export function VistaProcesso({
   /** "AAAA-MM-DD" de Brasília (vem do servidor) */
   hoje: string;
   linha: LinhaPainel;
+  /** e-mail do cliente (login no consulado etc.); vem da ficha, não do painel */
+  emailCliente: string | null;
   detalhe: ProcessoDetalhe;
   eventos: Evento[];
   referencias: Referencias;
@@ -49,6 +52,7 @@ export function VistaProcesso({
           dados: (
             <PaginaDados
               linha={linha}
+              emailCliente={emailCliente}
               detalhe={{ ...detalhe, situacao: linha.situacao }}
               acao={
                 permissoes.escrever && (
