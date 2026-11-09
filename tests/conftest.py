@@ -21,7 +21,7 @@ os.environ["LOG_ARQUIVO"] = ""
 os.environ["JWT_SECRET"] = "segredo-apenas-para-testes-com-mais-de-32-caracteres"
 
 # tabelas com dados de teste; perfis e situacoes são dados de referência e ficam
-TABELAS = "eventos, formularios_ds160, solicitantes, processo_obt, processo_ren, processo_pass, " \
+TABELAS = "chaves_idempotencia, eventos, formularios_ds160, solicitantes, processo_obt, processo_ren, processo_pass, " \
           "processos, clientes, usuarios"
 
 

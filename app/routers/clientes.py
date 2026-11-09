@@ -3,12 +3,13 @@ import re
 from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import func, or_, select, update
 
+from app.idempotencia import RotaIdempotente
 from app.deps import Sessao
 from app.models import Cliente, Processo
 from app.routers.comum import aplicar_patch, obter_ou_404
 from app.schemas.cliente import ClienteBase, ClienteLista, ClienteOut, ClienteUpdate
 
-router = APIRouter(prefix="/clientes", tags=["Clientes"])
+router = APIRouter(prefix="/clientes", tags=["Clientes"], route_class=RotaIdempotente)
 
 
 @router.post("", response_model=ClienteOut, status_code=201)

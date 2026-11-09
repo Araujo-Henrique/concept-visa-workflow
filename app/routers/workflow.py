@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
+from app.idempotencia import RotaIdempotente
 from app.deps import Sessao, UsuarioAtual
 from app.models import Evento, Processo, Usuario
 from app.routers.comum import obter_ou_404
 from app.schemas.workflow import EventoOut, MudarSituacao
 from app.servicos.workflow import ErroDeRegra, mudar_situacao
 
-router = APIRouter(prefix="/processos", tags=["Workflow"])
+router = APIRouter(prefix="/processos", tags=["Workflow"], route_class=RotaIdempotente)
 
 
 @router.post("/{processo_id}/situacao", response_model=EventoOut)

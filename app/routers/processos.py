@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app.idempotencia import RotaIdempotente
 from app.deps import Sessao, UsuarioAtual
 from app.enums import Consulado, TipoEvento
 from app.models import (Cliente, Evento, Processo, ProcessoOBT, ProcessoPASS, ProcessoREN, Solicitante)
@@ -19,7 +20,7 @@ def _carregar(modelo):
 
 def rotas_processo(prefixo: str, modelo: type[Processo], base: type[BaseModel], criar_schema: type[BaseModel],
                    atualizar_schema: type[BaseModel], saida: type[BaseModel], rotulo: str) -> APIRouter:
-    router = APIRouter(prefix=prefixo, tags=[rotulo])
+    router = APIRouter(prefix=prefixo, tags=[rotulo], route_class=RotaIdempotente)
 
     def buscar(sessao, processo_id: int):
         processo = sessao.scalars(

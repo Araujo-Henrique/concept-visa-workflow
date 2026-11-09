@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 
+from app.idempotencia import RotaIdempotente
 from app.deps import Sessao, UsuarioAtual, exige
 from app.models import AuditoriaUsuario, Perfil, Usuario
 from app.permissoes import ADMINISTRAR
@@ -11,7 +12,8 @@ from app.schemas.usuario import AuditoriaOut, NovaSenha, UsuarioNovo, UsuarioUpd
 from app.servicos import usuarios as servico
 from app.servicos.workflow import ErroDeRegra
 
-router = APIRouter(prefix="/usuarios", tags=["Usuários (admin)"], dependencies=[Depends(exige(ADMINISTRAR))])
+router = APIRouter(prefix="/usuarios", tags=["Usuários (admin)"], dependencies=[Depends(exige(ADMINISTRAR))],
+                   route_class=RotaIdempotente)
 
 
 def _traduz(erro: ErroDeRegra) -> HTTPException:

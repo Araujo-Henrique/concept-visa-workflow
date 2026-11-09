@@ -243,3 +243,25 @@ class AuditoriaUsuario(Base):
     valor_anterior: Mapped[str | None] = mapped_column(Text)
     valor_novo: Mapped[str | None] = mapped_column(Text)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChaveIdempotencia(Base):
+    """Pedidos de criação já recebidos (cabeçalho Idempotency-Key). Se o mesmo pedido chega de novo (duplo
+    clique, reenvio da rede), a API devolve a resposta guardada em vez de criar outra vez.
+
+    `status` nulo = o pedido ainda está sendo processado. Só respostas de sucesso ficam guardadas;
+    as chaves são apagadas depois de 24 h."""
+    __tablename__ = "chaves_idempotencia"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "chave", name="uq_chaves_idempotencia_usuario_chave"),
+        Index("ix_chaves_idempotencia_criado_em", "criado_em"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id", ondelete="CASCADE"))
+    chave: Mapped[str] = mapped_column(String(80))
+    escopo: Mapped[str] = mapped_column(String(200))  # "POST /clientes": a mesma chave não vale para outra rota
+    impressao: Mapped[str] = mapped_column(String(64))  # sha256 do corpo: mesma chave com dados diferentes é erro
+    status: Mapped[int | None] = mapped_column(Integer)
+    corpo: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

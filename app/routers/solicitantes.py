@@ -2,13 +2,14 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
+from app.idempotencia import RotaIdempotente
 from app.deps import Sessao
 from app.models import FormularioDS160, Processo, Solicitante
 from app.routers.comum import obter_ou_404
 from app.schemas.solicitante import (FormularioNovo, FormularioOut, FormularioUpdate, SolicitanteNovo,
                                      SolicitanteOut, SolicitanteUpdate)
 
-router = APIRouter(tags=["Solicitantes e DS-160"])
+router = APIRouter(tags=["Solicitantes e DS-160"], route_class=RotaIdempotente)
 
 
 @router.get("/processos/{processo_id}/solicitantes", response_model=list[SolicitanteOut])

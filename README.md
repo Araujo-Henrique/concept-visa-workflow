@@ -136,6 +136,14 @@ Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). O
   uma linha no log com método, caminho, status, duração, id do usuário e IP. Nunca entram senha, token, corpo nem
   parâmetros da URL. Erro não tratado vira 500 com o código (o traceback fica só no log); o front mostra o
   código nos erros 5xx, para a pessoa informar ao suporte. `LOG_NIVEL` e `LOG_FORMATO` (`texto` ou `json`).
+- **Idempotência:** as criações (POST de clientes, processos, pessoas, DS-160, usuários e a mudança de situação)
+  aceitam o cabeçalho `Idempotency-Key`. O mesmo código reenviado (duplo clique, F5, rede que repete) devolve a
+  resposta da primeira vez (cabeçalho `Idempotent-Replayed: true`) e não cria nada de novo; reenvio enquanto o
+  primeiro ainda roda espera o resultado. Só o sucesso fica guardado (24 h, tabela `chaves_idempotencia`): erro
+  libera a chave para corrigir e tentar de novo. Mesmo código com dados ou rota diferentes: 422. Login e troca de
+  senha ficam de fora (resposta com token). O front gera uma chave por formulário (`useChaveDeIdempotencia`)
+  nos cadastros de cliente, processo e usuário. Limite honesto: a resposta é guardada depois da gravação; se o
+  servidor cair nesse instante, a reserva expira em 1 minuto e o reenvio executa de novo.
 - `API_DOCS=false` tira o `/docs` e o `/openapi.json` (use em produção).
 - A contagem fica na memória da API: vale para **um processo** (o nosso caso). Com vários workers ou servidores,
   cada um contaria por si; aí a contagem precisa ir para o Redis. Reiniciar a API zera as contagens.
