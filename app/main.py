@@ -1,4 +1,6 @@
+import logging
 import os
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
@@ -7,7 +9,7 @@ from psycopg.errors import ForeignKeyViolation, QueryCanceled, UniqueViolation
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as SemConexaoLivre
 
-from app import db, deps, limites
+from app import db, deps, limites, logs
 from app.routers import auth, clientes, painel, processos, referencias, solicitantes, usuarios, workflow
 
 
@@ -23,6 +25,9 @@ def _docs_ligados() -> bool:
     # Em produção (VPS), API_DOCS=false tira o /docs e o /openapi.json: o mapa da API não fica à vista.
     return os.environ.get("API_DOCS", "true").strip().lower() not in ("false", "0", "nao", "não")
 
+
+logs.configurar()
+registro = logging.getLogger("concept.api")
 
 _docs = _docs_ligados()
 app = FastAPI(title="Concept Visa Workflow", lifespan=ciclo_de_vida, docs_url="/docs" if _docs else None,
@@ -43,6 +48,29 @@ async def proteger(request: Request, chamar):
         return JSONResponse(status_code=429, headers={"Retry-After": str(espera)},
                             content={"detail": limites.mensagem_de_espera(espera)})
     return await chamar(request)
+
+
+@app.middleware("http")
+async def registrar_requisicao(request: Request, chamar):
+    """A camada de fora (declarada por último): dá um id a cada requisição, devolve esse id no cabeçalho
+    X-Request-ID e escreve uma linha no log com o resultado. Erro não tratado vira 500 com o id, e o
+    traceback vai para o log (a pessoa vê só o código; o detalhe técnico nunca sai da API)."""
+    id_req = logs.novo_id(request.headers.get("x-request-id"))
+    logs.id_da_requisicao.set(id_req)
+    inicio = time.perf_counter()
+    try:
+        resposta = await chamar(request)
+    except Exception:
+        registro.exception("erro nao tratado em %s %s", request.method, request.url.path)
+        resposta = JSONResponse(status_code=500, content={"detail": "Erro interno. Informe o código ao suporte",
+                                                          "id": id_req})
+    resposta.headers["X-Request-ID"] = id_req
+    nivel = logging.ERROR if resposta.status_code >= 500 else logging.WARNING if resposta.status_code >= 400         else logging.INFO
+    registro.log(nivel, "requisicao", extra={"campos": {
+        "metodo": request.method, "caminho": request.url.path, "status": resposta.status_code,
+        "ms": round((time.perf_counter() - inicio) * 1000, 1),
+        "usuario": getattr(request.state, "usuario_id", None), "ip": limites.ip_do_cliente(request)}})
+    return resposta
 
 
 app.include_router(auth.router)  # login e "quem sou eu": o login é a única rota pública

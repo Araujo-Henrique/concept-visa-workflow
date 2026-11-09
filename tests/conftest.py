@@ -16,6 +16,8 @@ from app.models import Cliente, ProcessoOBT, Solicitante
 
 load_dotenv()
 # segredo só dos testes (não é o do .env): o token precisa assinar sem depender da máquina
+# os testes não escrevem arquivo de log, mesmo que o .env da máquina peça um
+os.environ["LOG_ARQUIVO"] = ""
 os.environ["JWT_SECRET"] = "segredo-apenas-para-testes-com-mais-de-32-caracteres"
 
 # tabelas com dados de teste; perfis e situacoes são dados de referência e ficam

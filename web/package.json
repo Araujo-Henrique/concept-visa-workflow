@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --reload --env-file .env\" \"next dev\"",
+    "dev": "concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --reload --no-access-log --env-file .env\" \"next dev\"",
     "build": "next build",
     "start": "next start",
-    "publicar": "next build && concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --env-file .env\" \"next start\"",
+    "publicar": "next build && concurrently -n api,web -c cyan,magenta -k \"cd .. && venv\\Scripts\\python -m uvicorn app.main:app --no-access-log --env-file .env\" \"next start\"",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "npm run lint:prettier:check && npm run lint:eslint:check && npm run typecheck && jest --runInBand",
     "test:watch": "jest --watchAll --runInBand --verbose",

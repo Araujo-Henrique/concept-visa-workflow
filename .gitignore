@@ -13,3 +13,5 @@ usuarios*.csv
 
 # exceções da importação (contêm dados reais)
 excecoes*.csv
+
+logs/

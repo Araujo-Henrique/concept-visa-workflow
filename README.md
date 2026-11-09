@@ -132,6 +132,10 @@ Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). O
   Por isso a API deve escutar só em `127.0.0.1` (o padrão do uvicorn): exposta direto, o limite continua valendo
   pelo IP da conexão, mas o certo é só o Next falar com ela.
 - Falhas e bloqueios de login vão para o log (`concept.acesso`) com o IP e o e-mail mascarado (`a***@dominio.com`).
+- **Logs:** cada requisição ganha um código (cabeçalho `X-Request-ID`, também aceito de fora se for simples) e
+  uma linha no log com método, caminho, status, duração, id do usuário e IP. Nunca entram senha, token, corpo nem
+  parâmetros da URL. Erro não tratado vira 500 com o código (o traceback fica só no log); o front mostra o
+  código nos erros 5xx, para a pessoa informar ao suporte. `LOG_NIVEL` e `LOG_FORMATO` (`texto` ou `json`).
 - `API_DOCS=false` tira o `/docs` e o `/openapi.json` (use em produção).
 - A contagem fica na memória da API: vale para **um processo** (o nosso caso). Com vários workers ou servidores,
   cada um contaria por si; aí a contagem precisa ir para o Redis. Reiniciar a API zera as contagens.

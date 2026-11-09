@@ -21,7 +21,7 @@ Sessao = Annotated[SessaoORM, Depends(get_sessao)]
 _esquema = HTTPBearer(auto_error=False)
 
 
-def usuario_atual(sessao: Sessao,
+def usuario_atual(request: Request, sessao: Sessao,
                   credenciais: Annotated[HTTPAuthorizationCredentials | None, Depends(_esquema)]) -> Usuario:
     """Quem está fazendo a requisição. Roda em toda rota protegida.
 
@@ -39,6 +39,7 @@ def usuario_atual(sessao: Sessao,
         raise nao_autenticado
     if not usuario.ativo:
         raise HTTPException(status_code=403, detail="Acesso desativado")
+    request.state.usuario_id = usuario.id  # o log da requisição diz quem foi
     return usuario
 
 
