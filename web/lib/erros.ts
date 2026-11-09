@@ -4,6 +4,8 @@ export class ErroApi extends Error {
   constructor(
     public status: number,
     mensagem: string,
+    /** Código da requisição (cabeçalho X-Request-ID da API): leva às linhas do log daquele erro. */
+    public idRequisicao?: string,
   ) {
     super(mensagem);
     this.name = "ErroApi";

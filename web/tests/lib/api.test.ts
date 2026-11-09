@@ -104,6 +104,27 @@ describe("chamada autenticada", () => {
     });
   });
 
+  it("erro do servidor (5xx) mostra o código da requisição para a pessoa informar ao suporte", async () => {
+    const aviso = jest.spyOn(console, "error").mockImplementation(() => {});
+    fetchMock.mockResolvedValue(
+      resposta(
+        { detail: "Banco de dados indisponível" },
+        { status: 503, headers: { "X-Request-ID": "ab12cd34ef56" } },
+      ),
+    );
+    const erro = (await apiGet("/x").catch((e: unknown) => e)) as ErroApi;
+    expect(erro.message).toBe("Banco de dados indisponível (código ab12cd34ef56)");
+    expect(erro.idRequisicao).toBe("ab12cd34ef56");
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining("ab12cd34ef56"));
+  });
+
+  it("erro de regra (4xx) não ganha código: a mensagem já diz o que fazer", async () => {
+    fetchMock.mockResolvedValue(
+      resposta({ detail: "Informe o motivo" }, { status: 422, headers: { "X-Request-ID": "ab12cd34ef56" } }),
+    );
+    await expect(apiGet("/x")).rejects.toMatchObject({ message: "Informe o motivo" });
+  });
+
   it("API fora do ar vira ErroApi 503 (e não um erro técnico de rede)", async () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
     await expect(apiGet("/x")).rejects.toMatchObject({ status: 503 });

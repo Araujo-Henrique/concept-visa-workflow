@@ -61,7 +61,14 @@ async function chamar(caminho: string, { metodo = "GET", corpo, params }: Opcoes
       (j) => j?.detail,
       () => null,
     );
-    throw new ErroApi(resposta.status, mensagemDeErro(resposta.status, detail));
+    const id = resposta.headers.get("x-request-id") ?? undefined;
+    let mensagem = mensagemDeErro(resposta.status, detail);
+    if (resposta.status >= 500 && id) {
+      // erro do servidor: a pessoa informa o código e quem cuida do sistema acha a linha no log da API
+      console.error(`[api] ${metodo} ${caminho} -> ${resposta.status} (código ${id})`);
+      mensagem += ` (código ${id})`;
+    }
+    throw new ErroApi(resposta.status, mensagem, id);
   }
   return resposta;
 }
