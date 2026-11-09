@@ -144,6 +144,10 @@ Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). O
   senha ficam de fora (resposta com token). O front gera uma chave por formulário (`useChaveDeIdempotencia`)
   nos cadastros de cliente, processo e usuário. Limite honesto: a resposta é guardada depois da gravação; se o
   servidor cair nesse instante, a reserva expira em 1 minuto e o reenvio executa de novo.
+- **Saúde:** `GET /saude` (a API está de pé? não toca no banco) e `GET /pronto` (o banco responde? 503 se não).
+  Públicas, devolvem só `{"status": ...}`, não contam no limite por IP e ficam fora do log normal (só em `DEBUG`).
+  Separadas de propósito: se o banco cai, a API não deve ser reiniciada à toa (é o que um `healthcheck` do Docker
+  e o Nginx vão usar no Projeto 5: `/saude` para reiniciar, `/pronto` para tirar da rotação).
 - `API_DOCS=false` tira o `/docs` e o `/openapi.json` (use em produção).
 - A contagem fica na memória da API: vale para **um processo** (o nosso caso). Com vários workers ou servidores,
   cada um contaria por si; aí a contagem precisa ir para o Redis. Reiniciar a API zera as contagens.

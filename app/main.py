@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as SemConexaoLivre
 
 from app import db, deps, limites, logs
-from app.routers import auth, clientes, painel, processos, referencias, solicitantes, usuarios, workflow
+from app.routers import auth, clientes, painel, processos, referencias, saude, solicitantes, usuarios, workflow
 
 
 @asynccontextmanager
@@ -44,6 +44,8 @@ async def proteger(request: Request, chamar):
     tamanho = request.headers.get("content-length")
     if tamanho is not None and (not tamanho.isdigit() or int(tamanho) > LIMITE_CORPO_BYTES):
         return JSONResponse(status_code=413, content={"detail": "Dados grandes demais"})
+    if request.url.path in saude.CAMINHOS:  # monitoramento: sem limite por IP (ele pergunta o tempo todo)
+        return await chamar(request)
     if espera := limites.geral.registrar(limites.ip_do_cliente(request)):
         return JSONResponse(status_code=429, headers={"Retry-After": str(espera)},
                             content={"detail": limites.mensagem_de_espera(espera)})
@@ -65,7 +67,14 @@ async def registrar_requisicao(request: Request, chamar):
         resposta = JSONResponse(status_code=500, content={"detail": "Erro interno. Informe o código ao suporte",
                                                           "id": id_req})
     resposta.headers["X-Request-ID"] = id_req
-    nivel = logging.ERROR if resposta.status_code >= 500 else logging.WARNING if resposta.status_code >= 400         else logging.INFO
+    if resposta.status_code >= 500:
+        nivel = logging.ERROR
+    elif resposta.status_code >= 400:
+        nivel = logging.WARNING
+    elif request.url.path in saude.CAMINHOS:
+        nivel = logging.DEBUG  # o monitor pergunta a cada poucos segundos: não polui o log
+    else:
+        nivel = logging.INFO
     registro.log(nivel, "requisicao", extra={"campos": {
         "metodo": request.method, "caminho": request.url.path, "status": resposta.status_code,
         "ms": round((time.perf_counter() - inicio) * 1000, 1),
@@ -73,6 +82,7 @@ async def registrar_requisicao(request: Request, chamar):
     return resposta
 
 
+app.include_router(saude.router)  # saúde: pública, não mostra dado nenhum
 app.include_router(auth.router)  # login e "quem sou eu": o login é a única rota pública
 
 # Todas as demais exigem login E a permissão do método (GET lê, POST/PATCH escrevem, DELETE apaga).
