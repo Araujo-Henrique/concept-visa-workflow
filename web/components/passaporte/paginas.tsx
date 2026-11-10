@@ -98,11 +98,13 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
 
 export function PaginaDados({
   linha,
+  emailCliente,
   detalhe,
   acao,
   extra,
 }: {
   linha: LinhaPainel;
+  emailCliente?: string | null;
   detalhe: ProcessoDetalhe;
   acao?: ReactNode;
   /** faixa abaixo dos campos (o despacho do REN) */
@@ -113,6 +115,18 @@ export function PaginaDados({
     { rotulo: "Tipo", valor: TIPOS[linha.tipo].nome },
     { rotulo: "Situação", valor: <SeloSituacao situacao={linha.situacao} /> },
     { rotulo: "Cliente", valor: linha.cliente, largo: true },
+    {
+      rotulo: "E-mail",
+      largo: true,
+      valor: emailCliente ? (
+        // linha inteira: o e-mail não quebra no meio (a equipe copia para entrar no site do consulado)
+        <a href={`mailto:${emailCliente}`} className="break-words underline-offset-4 hover:underline">
+          {emailCliente}
+        </a>
+      ) : (
+        "—"
+      ),
+    },
     { rotulo: "Telefone", valor: formatarTelefone(linha.telefone) },
     { rotulo: "Grupo", valor: linha.grupo ?? "—" },
     ...camposDoTipo(linha, detalhe),

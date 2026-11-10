@@ -1,4 +1,4 @@
-import { Mail, ShieldCheck } from "lucide-react";
+import { LogIn, Mail, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
@@ -6,33 +6,60 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TrocarSenha } from "@/components/usuarios/trocar-senha";
 import { NOME_DO_PERFIL } from "@/lib/permissoes";
 import { usuarioAtual } from "@/lib/sessao";
-import { DESCRICAO_DO_PERFIL, iniciais } from "@/lib/usuarios";
+import { DESCRICAO_DO_PERFIL, iniciais, temSenha } from "@/lib/usuarios";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
-/** Minha conta: o próprio crachá (nome, e-mail, perfil) e a troca de senha. Todos os perfis. */
+/** Minha conta: o próprio crachá (nome, e-mail, perfil) e, para o administrador, a troca de senha. */
 export default function PaginaConta() {
   return (
     <div className="mx-auto max-w-4xl">
       <header className="mb-8">
         <h1 className="text-3xl font-extrabold">Minha conta</h1>
-        <p className="mt-1 text-muted-foreground">Seus dados de acesso e a sua senha.</p>
+        <p className="mt-1 text-muted-foreground">Seus dados de acesso.</p>
       </header>
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
           <MeuCracha />
         </Suspense>
-        <section className="rounded-2xl border bg-card p-6 shadow-sm" aria-labelledby="titulo-senha">
-          <h2 id="titulo-senha" className="text-lg font-bold">
-            Trocar senha
-          </h2>
-          <p className="mb-5 text-sm text-muted-foreground">
-            Depois de trocar, a sessão atual continua aberta; a senha nova vale no próximo login.
-          </p>
-          <TrocarSenha />
-        </section>
+        <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+          <CartaoDeAcesso />
+        </Suspense>
       </div>
     </div>
+  );
+}
+
+/** Administrador troca a senha; os demais entram com o Google e não têm senha para trocar. */
+async function CartaoDeAcesso() {
+  const eu = await usuarioAtual();
+  if (!temSenha(eu.perfil)) {
+    return (
+      <section
+        className="self-start rounded-2xl border bg-card p-6 shadow-sm"
+        aria-labelledby="titulo-acesso"
+      >
+        <h2 id="titulo-acesso" className="flex items-center gap-2 text-lg font-bold">
+          <LogIn className="size-5 text-marca" aria-hidden /> Como você entra
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Você entra com a sua conta do Google, usando o e-mail {eu.email}. Não existe senha deste sistema
+          para trocar: a segurança da sua conta é a do Google (senha e verificação em duas etapas).
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section className="rounded-2xl border bg-card p-6 shadow-sm" aria-labelledby="titulo-senha">
+      <h2 id="titulo-senha" className="text-lg font-bold">
+        Trocar senha
+      </h2>
+      <p className="mb-5 text-sm text-muted-foreground">
+        A senha é o seu acesso reserva de administrador (o normal é entrar com o Google). Depois de trocar, a
+        sessão atual continua aberta; a senha nova vale no próximo login.
+      </p>
+      <TrocarSenha />
+    </section>
   );
 }
 

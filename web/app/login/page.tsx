@@ -5,13 +5,20 @@ import { CenaVoo } from "@/components/login/cena-voo";
 import { FormLogin } from "@/components/login/form-login";
 import { Simbolo } from "@/components/marca/simbolo";
 import { destinoSeguro } from "@/lib/erros";
+import { mensagemDoErroGoogle } from "@/lib/google-oauth";
 
 export const metadata: Metadata = { title: "Entrar" };
 
 /** Lê a URL (para onde voltar, sessão expirada): dado da requisição, por isso fica num <Suspense>. */
 async function Formulario({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
-  const { de, expirou } = await searchParams;
-  return <FormLogin destino={destinoSeguro(typeof de === "string" ? de : null)} expirou={expirou === "1"} />;
+  const { de, expirou, erro } = await searchParams;
+  return (
+    <FormLogin
+      destino={destinoSeguro(typeof de === "string" ? de : null)}
+      expirou={expirou === "1"}
+      erroGoogle={mensagemDoErroGoogle(typeof erro === "string" ? erro : null)}
+    />
+  );
 }
 
 export default function PaginaLogin({ searchParams }: PageProps<"/login">) {
@@ -32,7 +39,7 @@ export default function PaginaLogin({ searchParams }: PageProps<"/login">) {
             <Formulario searchParams={searchParams} />
           </Suspense>
           <p className="mt-10 text-xs text-muted-foreground">
-            Esqueceu a senha? Peça a um administrador para redefinir.
+            Problemas para entrar? Fale com um administrador da Concept Vistos.
           </p>
         </div>
       </section>

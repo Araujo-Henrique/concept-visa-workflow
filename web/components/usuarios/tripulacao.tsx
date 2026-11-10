@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { NOME_DO_PERFIL } from "@/lib/permissoes";
 import type { Perfil, Usuario } from "@/lib/tipos";
-import { iniciais } from "@/lib/usuarios";
+import { iniciais, temSenha } from "@/lib/usuarios";
 import { cn } from "@/lib/utils";
 
 type Filtro = "ativos" | "inativos" | "todos";
@@ -177,9 +177,11 @@ function Cracha({
             <DropdownMenuItem onSelect={aoEditar}>
               <Pencil /> Editar nome e perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={aoSenha}>
-              <KeyRound /> Redefinir senha
-            </DropdownMenuItem>
+            {temSenha(usuario.perfil) && (
+              <DropdownMenuItem onSelect={aoSenha}>
+                <KeyRound /> Redefinir senha
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={aoHistorico}>
               <History /> Ver histórico
             </DropdownMenuItem>

@@ -10,7 +10,7 @@ import type { RegistroAuditoria } from "@/lib/usuarios";
 // Administração de usuários: a API só aceita de quem tem o perfil admin (403 para os demais).
 
 export async function criarUsuario(
-  corpo: { nome: string; email: string; perfil: string; senha: string },
+  corpo: { nome: string; email: string; perfil: string; senha?: string },
   chave?: string,
 ) {
   const r = await tentar(async () => (await apiEnviar<Usuario>("POST", "/usuarios", corpo, chave))!);
@@ -38,7 +38,7 @@ export async function auditoriaDoUsuario(usuarioId: number) {
   return tentar(() => apiGet<RegistroAuditoria[]>(`/usuarios/${usuarioId}/auditoria`));
 }
 
-/** Qualquer perfil troca a própria senha (precisa da atual). */
+/** Só o administrador tem senha (a API recusa os demais com 403). Precisa da senha atual. */
 export async function trocarMinhaSenha(senhaAtual: string, novaSenha: string) {
   return tentar(() => apiEnviar("POST", "/auth/senha", { senha_atual: senhaAtual, nova_senha: novaSenha }));
 }

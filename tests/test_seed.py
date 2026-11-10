@@ -73,16 +73,16 @@ def test_cenarios_de_demonstracao_estao_presentes(sessao, resumo):
     assert sessao.scalar(select(func.count(func.distinct(Cliente.grupo)))) >= 4
 
 
-def test_usuarios_demo_entram_com_a_senha_informada_e_o_ex_funcionario_nao(sessao, resumo, client_anonimo):
+def test_so_o_admin_demo_entra_com_senha_os_outros_so_com_o_google(sessao, resumo, client_anonimo):
     def entrar(email):
         return client_anonimo.post("/auth/login", json={"email": email, "senha": SENHA_TESTE}).status_code
 
-    assert [entrar(e) for e in ("admin@exemplo.com", "atendente@exemplo.com", "leitor@exemplo.com")] == [200] * 3
-    assert entrar("ex-funcionario@exemplo.com") == 401  # inativo
+    assert entrar("admin@exemplo.com") == 200
+    assert [entrar(e) for e in ("atendente@exemplo.com", "leitor@exemplo.com", "ex-funcionario@exemplo.com")] == [401] * 3
 
 
 def test_o_painel_mostra_os_dados_semeados(sessao, resumo, client_anonimo):
-    token = client_anonimo.post("/auth/login", json={"email": "leitor@exemplo.com", "senha": SENHA_TESTE}).json()
+    token = client_anonimo.post("/auth/login", json={"email": "admin@exemplo.com", "senha": SENHA_TESTE}).json()
     cabecalho = {"Authorization": f"Bearer {token['access_token']}"}
     painel = client_anonimo.get("/painel", params={"limit": 200}, headers=cabecalho)
     assert painel.status_code == 200

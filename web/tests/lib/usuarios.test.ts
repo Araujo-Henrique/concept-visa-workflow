@@ -3,6 +3,7 @@ import {
   gerarSenha,
   iniciais,
   SENHA_MINIMA,
+  temSenha,
   validarSenha,
   validarUsuarioNovo,
   type RegistroAuditoria,
@@ -40,6 +41,20 @@ describe("usuário novo", () => {
     );
   });
 
+  it("para quem não é admin a senha nem é pedida (entra com o Google)", () => {
+    const sem = { nome: "Ana", email: "ana@concept.com", senha: "" };
+    expect(validarUsuarioNovo(sem, false)).toEqual({});
+    expect(Object.keys(validarUsuarioNovo(sem))).toEqual(["senha"]);
+    expect(Object.keys(validarUsuarioNovo({ nome: "", email: "x", senha: "" }, false)).sort()).toEqual([
+      "email",
+      "nome",
+    ]);
+  });
+
+  it("só o admin tem senha", () => {
+    expect([temSenha("admin"), temSenha("atendente"), temSenha("leitor")]).toEqual([true, false, false]);
+  });
+
   it("iniciais do crachá", () => {
     expect(iniciais("Ana Beatriz Moura")).toBe("AM");
     expect(iniciais("ana")).toBe("A");
@@ -66,6 +81,9 @@ describe("auditoria", () => {
     expect(descreverAuditoria(r("senha", null, "redefinida"))).toBe("Senha redefinida por um administrador");
     expect(descreverAuditoria(r("senha", null, "trocada pelo próprio usuário"))).toBe(
       "Trocou a própria senha",
+    );
+    expect(descreverAuditoria(r("senha", null, "removida (deixou de ser administrador)"))).toBe(
+      "Senha removida: passa a entrar só com o Google",
     );
   });
 });

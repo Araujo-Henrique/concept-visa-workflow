@@ -103,7 +103,7 @@ def test_acertar_a_senha_zera_as_falhas_da_conta(client_anonimo, usuario_teste):
 
 def test_trava_de_uma_conta_nao_afeta_outra(client_anonimo, usuario_teste, sessao):
     from app.servicos.usuarios import criar_usuario
-    criar_usuario(sessao, "Outra Pessoa", "outra@exemplo.com", "leitor", "senha-da-outra-123")
+    criar_usuario(sessao, "Outra Pessoa", "outra@exemplo.com", "admin", "senha-da-outra-123")
     sessao.commit()
     for _ in range(5):
         login(client_anonimo, senha="errada-errada")

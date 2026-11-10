@@ -156,7 +156,8 @@ def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente:
            hoje: date | None = None) -> dict[str, int]:
     """Cria usuários demo, clientes e processos fictícios. O commit é de quem chama.
 
-    `senha` vale para os usuários demo (None = sem senha, ninguém consegue entrar por senha).
+    `senha` vale só para o usuário demo admin (só admin entra com senha; os outros perfis entram com o Google).
+    None = sem senha para todos.
     """
     if sessao.scalar(select(func.count()).select_from(Cliente)):
         raise RuntimeError("O banco já tem clientes: o seed só roda num banco sem clientes, "
@@ -168,7 +169,7 @@ def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente:
     for nome, email, perfil, ativo in USUARIOS_DEMO:
         usuario = achar_por_email(sessao, email)
         if usuario is None:
-            usuario = criar_usuario(sessao, nome, email, perfil, senha)
+            usuario = criar_usuario(sessao, nome, email, perfil, senha if perfil == "admin" else None)
             usuario.ativo = ativo
         usuarios[perfil if ativo else "inativo"] = usuario
     gerador = _Gerador(rng, hoje or date.today(), usuarios["atendente"])

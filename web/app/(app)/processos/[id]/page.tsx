@@ -10,11 +10,12 @@ import { SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hojeEmSP } from "@/lib/agenda";
 import { apiGet, apiLista } from "@/lib/api";
+import { ErroApi } from "@/lib/erros";
 import { TIPOS } from "@/lib/formatos";
 import { pode } from "@/lib/permissoes";
 import { urlDosFiltros } from "@/lib/processos";
 import { usuarioAtual } from "@/lib/sessao";
-import type { Evento, LinhaPainel, ProcessoDetalhe, Referencias, TipoProcesso } from "@/lib/tipos";
+import type { Cliente, Evento, LinhaPainel, ProcessoDetalhe, Referencias, TipoProcesso } from "@/lib/tipos";
 
 export const metadata: Metadata = { title: "Processo" };
 
@@ -43,11 +44,17 @@ async function Conteudo({ params }: { params: PageProps<"/processos/[id]">["para
   const linha = itens[0];
   if (!linha) notFound();
 
-  const [detalhe, eventos, referencias, usuario] = await Promise.all([
+  const [detalhe, eventos, referencias, usuario, cliente] = await Promise.all([
     apiGet<ProcessoDetalhe>(`${ROTA_DO_TIPO[linha.tipo]}/${id}`),
     apiGet<Evento[]>(`/processos/${id}/eventos`),
     apiGet<Referencias>("/referencias"),
     usuarioAtual(),
+    // o e-mail do cliente não vem no painel; sem ele a página continua (só não mostra o e-mail).
+    // Só o ErroApi é engolido: o redirect para o login (sessão vencida) precisa seguir adiante.
+    apiGet<Cliente>(`/clientes/${linha.cliente_id}`).catch((erro) => {
+      if (erro instanceof ErroApi) return null;
+      throw erro;
+    }),
   ]);
 
   return (
@@ -78,6 +85,7 @@ async function Conteudo({ params }: { params: PageProps<"/processos/[id]">["para
       <VistaProcesso
         hoje={hojeEmSP()}
         linha={linha}
+        emailCliente={cliente?.email ?? null}
         detalhe={detalhe}
         eventos={eventos}
         referencias={referencias}

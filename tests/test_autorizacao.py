@@ -91,17 +91,26 @@ def test_perfil_alterado_vale_na_proxima_requisicao(como, client):
 
 # ---------------------------------------------------------------- administração de usuários
 
-def test_admin_cria_usuario_e_ele_consegue_entrar(client, client_anonimo):
+def test_admin_cria_admin_com_senha_e_ele_consegue_entrar(client, client_anonimo):
     criado = client.post("/usuarios", json={"nome": "Nova Pessoa", "email": "nova@exemplo.com",
-                                            "perfil": "atendente", "senha": "senha-bem-longa-1"})
+                                            "perfil": "admin", "senha": "senha-bem-longa-1"})
     assert criado.status_code == 201
-    assert criado.json()["perfil"] == "atendente" and "senha_hash" not in criado.json()
+    assert criado.json()["perfil"] == "admin" and "senha_hash" not in criado.json()
     login = client_anonimo.post("/auth/login", json={"email": "nova@exemplo.com", "senha": "senha-bem-longa-1"})
     assert login.status_code == 200
 
 
+def test_so_admin_tem_senha_os_outros_perfis_sao_criados_sem_ela(client, client_anonimo):
+    dados = {"nome": "Nova Pessoa", "email": "nova@exemplo.com", "perfil": "atendente"}
+    recusado = client.post("/usuarios", json={**dados, "senha": "senha-bem-longa-1"})
+    assert recusado.status_code == 422 and "Google" in recusado.json()["detail"]
+    assert client.post("/usuarios", json=dados).status_code == 201  # sem senha: entra só com o Google
+    entrada = client_anonimo.post("/auth/login", json={"email": "nova@exemplo.com", "senha": "qualquer-1234"})
+    assert entrada.status_code == 401
+
+
 def test_criar_usuario_valida_perfil_email_e_senha(client):
-    base = {"nome": "X", "email": "x@exemplo.com", "perfil": "leitor", "senha": "senha-bem-longa-1"}
+    base = {"nome": "X", "email": "x@exemplo.com", "perfil": "admin", "senha": "senha-bem-longa-1"}
     assert client.post("/usuarios", json={**base, "perfil": "chefe"}).status_code == 422
     assert client.post("/usuarios", json={**base, "senha": "curta"}).status_code == 422
     assert client.post("/usuarios", json=base).status_code == 201
@@ -142,14 +151,35 @@ def test_patch_de_usuario_recusa_vazio_e_campos_extras(client, usuario_teste):
 def test_auditoria_registra_quem_mudou_o_que(como, client, usuario_teste, sessao):
     alvo = como("leitor")
     client.patch(f"/usuarios/{alvo.usuario.id}", json={"perfil": "atendente", "ativo": False, "nome": "Novo Nome"})
-    client.post(f"/usuarios/{alvo.usuario.id}/senha", json={"senha": "senha-redefinida-1"})
     linhas = client.get(f"/usuarios/{alvo.usuario.id}/auditoria").json()
     assert [(l["campo"], l["valor_anterior"], l["valor_novo"]) for l in linhas] == [
-        ("perfil", "leitor", "atendente"), ("ativo", "True", "False"),
-        ("nome", f"leitor {alvo.usuario.id - usuario_teste.id}", "Novo Nome"), ("senha", None, "redefinida")]
+        ("perfil", "leitor", "atendente"),
+        ("senha", None, "removida (deixou de ser administrador)"),  # o leitor do teste tinha senha: só admin tem
+        ("ativo", "True", "False"), ("nome", f"leitor {alvo.usuario.id - usuario_teste.id}", "Novo Nome")]
     assert {l["feito_por_id"] for l in linhas} == {usuario_teste.id}
-    assert "senha-redefinida-1" not in str(linhas)  # a senha nunca vai para a auditoria
     assert all(l["criado_em"] for l in linhas)
+
+
+def test_auditoria_da_senha_nunca_guarda_a_senha(como, client):
+    alvo = como("admin")
+    client.post(f"/usuarios/{alvo.usuario.id}/senha", json={"senha": "senha-redefinida-1"})
+    linhas = client.get(f"/usuarios/{alvo.usuario.id}/auditoria").json()
+    assert [(l["campo"], l["valor_anterior"], l["valor_novo"]) for l in linhas] == [("senha", None, "redefinida")]
+    assert "senha-redefinida-1" not in str(linhas)
+
+
+def test_quem_deixa_de_ser_admin_perde_a_senha_e_passa_a_entrar_so_com_o_google(como, client, client_anonimo, sessao):
+    alvo = como("admin")
+    email = alvo.usuario.email
+    assert client_anonimo.post("/auth/login", json={"email": email, "senha": SENHA_TESTE}).status_code == 200
+    client.patch(f"/usuarios/{alvo.usuario.id}", json={"perfil": "atendente"})
+    sessao.expire_all()
+    assert sessao.get(type(alvo.usuario), alvo.usuario.id).senha_hash is None
+    assert client_anonimo.post("/auth/login", json={"email": email, "senha": SENHA_TESTE}).status_code == 401
+    campos = [(l["campo"], l["valor_novo"]) for l in client.get(f"/usuarios/{alvo.usuario.id}/auditoria").json()]
+    assert ("senha", "removida (deixou de ser administrador)") in campos
+    # e não dá para redefinir senha de quem não é admin
+    assert client.post(f"/usuarios/{alvo.usuario.id}/senha", json={"senha": "senha-redefinida-1"}).status_code == 409
 
 
 def test_mudanca_sem_efeito_nao_gera_auditoria(client, como):
@@ -167,14 +197,26 @@ def test_listar_usuarios_com_filtros(client, como):
 
 # ---------------------------------------------------------------- senha
 
-def test_qualquer_perfil_troca_a_propria_senha(como, client_anonimo):
-    leitor = como("leitor")
-    email = leitor.usuario.email
-    assert leitor.post("/auth/senha", json={"senha_atual": "errada-qualquer-1", "nova_senha": "nova-senha-longa-1"}).status_code == 422
-    assert leitor.post("/auth/senha", json={"senha_atual": SENHA_TESTE, "nova_senha": "curta"}).status_code == 422
-    assert leitor.post("/auth/senha", json={"senha_atual": SENHA_TESTE, "nova_senha": "nova-senha-longa-1"}).status_code == 204
+def test_admin_troca_a_propria_senha(como, client_anonimo):
+    admin = como("admin")
+    email = admin.usuario.email
+    atual_errada = {"senha_atual": "errada-qualquer-1", "nova_senha": "nova-senha-longa-1"}
+    assert admin.post("/auth/senha", json=atual_errada).status_code == 422
+    assert admin.post("/auth/senha", json={"senha_atual": SENHA_TESTE, "nova_senha": "curta"}).status_code == 422
+    ok = {"senha_atual": SENHA_TESTE, "nova_senha": "nova-senha-longa-1"}
+    assert admin.post("/auth/senha", json=ok).status_code == 204
     assert client_anonimo.post("/auth/login", json={"email": email, "senha": SENHA_TESTE}).status_code == 401
     assert client_anonimo.post("/auth/login", json={"email": email, "senha": "nova-senha-longa-1"}).status_code == 200
+
+
+@pytest.mark.parametrize("perfil", ["atendente", "leitor"])
+def test_so_admin_usa_senha_os_outros_entram_com_o_google(como, client_anonimo, perfil):
+    pessoa = como(perfil)
+    resposta = pessoa.post("/auth/senha", json={"senha_atual": SENHA_TESTE, "nova_senha": "nova-senha-longa-1"})
+    assert resposta.status_code == 403 and "Google" in resposta.json()["detail"]
+    # mesmo com a senha CERTA no banco, quem não é admin não entra por senha (e a resposta é a de sempre)
+    entrada = client_anonimo.post("/auth/login", json={"email": pessoa.usuario.email, "senha": SENHA_TESTE})
+    assert entrada.status_code == 401 and entrada.json() == {"detail": "E-mail ou senha incorretos"}
 
 
 def test_trocar_senha_exige_login(client_anonimo):
@@ -183,23 +225,37 @@ def test_trocar_senha_exige_login(client_anonimo):
 
 # ---------------------------------------------------------------- nenhuma rota fica de fora
 
-def test_toda_rota_exceto_o_login_exige_autenticacao():
+# Rotas sem login por natureza: entrar (senha de admin ou Google) e saber a config pública do Google.
+PUBLICAS = {("POST", "/auth/login"), ("POST", "/auth/google"), ("GET", "/auth/google/config"),
+            ("GET", "/saude"), ("GET", "/pronto")}
+
+
+def _rotas_da_api():
+    """(método, caminho) de TODAS as rotas. Lê o OpenAPI porque `app.routes` agrupa as rotas incluídas num
+    objeto sem `path` (um percorrer-e-pular silencioso deixaria o teste passando sem verificar nada)."""
+    paginas = app.openapi()["paths"]
+    return [(metodo.upper(), caminho) for caminho, metodos in paginas.items() for metodo in metodos
+            if metodo.upper() in {"GET", "POST", "PATCH", "PUT", "DELETE"}]
+
+
+def test_a_lista_de_rotas_nao_esta_vazia_e_inclui_as_conhecidas():
+    rotas = _rotas_da_api()
+    assert len(rotas) > 30
+    assert {("POST", "/auth/login"), ("POST", "/auth/google"), ("GET", "/clientes"),
+            ("POST", "/usuarios")} <= set(rotas)
+
+
+def test_toda_rota_exceto_as_publicas_exige_autenticacao():
     """Percorre as rotas registradas: se alguém criar uma rota nova sem proteção, este teste falha."""
     client = TestClient(app)
-    publicas = {("POST", "/auth/login")}
-    docs = {"/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
     sem_protecao = []
-    for rota in app.routes:
-        caminho = getattr(rota, "path", None)
-        if caminho is None or caminho in docs:
+    for metodo, caminho in _rotas_da_api():
+        if (metodo, caminho) in PUBLICAS:
             continue
-        for metodo in getattr(rota, "methods", set()) - {"HEAD", "OPTIONS"}:
-            if (metodo, caminho) in publicas:
-                continue
-            url = re.sub(r"\{[^}]+\}", "1", caminho)  # troca os {parametros} por um valor qualquer
-            resposta = client.request(metodo, url, json={})
-            if resposta.status_code != 401:
-                sem_protecao.append((metodo, caminho, resposta.status_code))
+        url = re.sub(r"\{[^}]+\}", "1", caminho)  # troca os {parametros} por um valor qualquer
+        resposta = client.request(metodo, url, json={})
+        if resposta.status_code != 401:
+            sem_protecao.append((metodo, caminho, resposta.status_code))
     assert sem_protecao == []
 
 

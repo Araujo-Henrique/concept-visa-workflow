@@ -17,7 +17,7 @@ def achar_por_email(sessao: Session, email: str) -> Usuario | None:
 
 
 def criar_usuario(sessao: Session, nome: str, email: str, perfil: str, senha: str | None = None) -> Usuario:
-    """Cria o usuário (o commit é de quem chama). Sem senha, ele só poderá entrar com o Google (etapa 5b)."""
+    """Cria o usuário (o commit é de quem chama). Sem senha, ele só entra com o Google (só admin entra com senha)."""
     if senha is not None:
         _validar_senha(senha)
     perfil_db = sessao.scalars(select(Perfil).where(Perfil.nome == perfil)).first()
@@ -76,6 +76,10 @@ def atualizar_usuario(sessao: Session, alvo: Usuario, feito_por: Usuario, nome: 
     if novo_perfil is not None:
         _registrar(sessao, alvo, feito_por, "perfil", alvo.perfil.nome, novo_perfil.nome)
         alvo.perfil = novo_perfil
+        if novo_perfil.nome != "admin" and alvo.senha_hash is not None:
+            # só admin entra com senha: quem deixa de ser admin passa a entrar só com o Google
+            alvo.senha_hash = None
+            _registrar(sessao, alvo, feito_por, "senha", None, "removida (deixou de ser administrador)")
     if ativo is not None and ativo != alvo.ativo:
         _registrar(sessao, alvo, feito_por, "ativo", alvo.ativo, ativo)
         alvo.ativo = ativo

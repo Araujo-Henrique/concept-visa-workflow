@@ -30,8 +30,13 @@ def listar(sessao: Sessao, ativo: bool | None = None, perfil: str | None = None)
     return [UsuarioOut.de(u) for u in sessao.scalars(consulta)]
 
 
+SO_ADMIN_TEM_SENHA = "Só administradores têm senha; os demais perfis entram com o Google"
+
+
 @router.post("", response_model=UsuarioOut, status_code=201)
 def criar(dados: UsuarioNovo, sessao: Sessao, admin: UsuarioAtual):
+    if dados.senha and dados.perfil != "admin":
+        raise HTTPException(status_code=422, detail=SO_ADMIN_TEM_SENHA)
     try:
         usuario = servico.criar_usuario(sessao, dados.nome, dados.email, dados.perfil, dados.senha)
     except ErroDeRegra as erro:
@@ -63,6 +68,8 @@ def atualizar(usuario_id: int, dados: UsuarioUpdate, sessao: Sessao, admin: Usua
 @router.post("/{usuario_id}/senha", status_code=204)
 def redefinir_senha(usuario_id: int, dados: NovaSenha, sessao: Sessao, admin: UsuarioAtual):
     alvo = obter_ou_404(sessao, Usuario, usuario_id, "Usuário")
+    if alvo.perfil.nome != "admin":
+        raise HTTPException(status_code=409, detail=SO_ADMIN_TEM_SENHA)
     try:
         servico.redefinir_senha(sessao, alvo, admin, dados.senha)
     except ErroDeRegra as erro:

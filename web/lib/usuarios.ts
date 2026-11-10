@@ -16,6 +16,9 @@ export const DESCRICAO_DO_PERFIL: Record<Perfil, string> = {
   leitor: "Só consulta: não altera nada.",
 };
 
+/** Só admin entra com senha; os demais perfis entram só com o Google (mesma regra da API). */
+export const temSenha = (perfil: Perfil) => perfil === "admin";
+
 export type Erros = Record<string, string>;
 
 export function validarSenha(senha: string, confirmacao?: string): Erros {
@@ -25,11 +28,15 @@ export function validarSenha(senha: string, confirmacao?: string): Erros {
   return erros;
 }
 
-export function validarUsuarioNovo(v: { nome: string; email: string; senha: string }): Erros {
+/** `comSenha`: só o administrador tem senha; para os outros perfis a senha nem é pedida. */
+export function validarUsuarioNovo(
+  v: { nome: string; email: string; senha: string },
+  comSenha = true,
+): Erros {
   const erros: Erros = {};
   if (!v.nome.trim()) erros.nome = "Informe o nome.";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) erros.email = "E-mail inválido.";
-  return { ...erros, ...validarSenha(v.senha) };
+  return comSenha ? { ...erros, ...validarSenha(v.senha) } : erros;
 }
 
 // sem caracteres que se confundem ao ditar ou ler (0/O, 1/l/I)
@@ -83,6 +90,7 @@ export function descreverAuditoria(r: RegistroAuditoria): string {
     case "nome":
       return `Nome: ${r.valor_anterior ?? "—"} → ${r.valor_novo ?? "—"}`;
     case "senha":
+      if (r.valor_novo?.startsWith("removida")) return "Senha removida: passa a entrar só com o Google";
       return r.valor_novo === "redefinida"
         ? "Senha redefinida por um administrador"
         : "Trocou a própria senha";

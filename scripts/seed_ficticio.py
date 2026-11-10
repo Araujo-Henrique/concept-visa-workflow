@@ -50,7 +50,7 @@ def main() -> int:
 
     for chave, valor in resumo.items():
         print(f"  {chave:20}{valor:>6}")
-    print("Pronto. Entre com admin@exemplo.com, atendente@exemplo.com ou leitor@exemplo.com.")
+    print("Pronto. Entre com a senha em admin@exemplo.com (os demais usuários demo entram só com o Google).")
     return 0
 
 
