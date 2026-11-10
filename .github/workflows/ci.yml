@@ -175,3 +175,50 @@ jobs:
       - name: Log da API (só se falhou)
         if: failure()
         run: cat api.log
+
+  # ---------------------------------------------------------------------------------------------
+  # Docker: o que vai para a VPS precisa construir e subir. Pega erro de Dockerfile/compose antes do deploy.
+  # Valores descartáveis: nada aqui é segredo de verdade.
+  # ---------------------------------------------------------------------------------------------
+  docker:
+    name: Docker (build e subida da pilha)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      POSTGRES_USER: ci
+      POSTGRES_PASSWORD: senha-descartavel-do-ci-123
+      POSTGRES_DB: ci_db
+      JWT_SECRET: segredo-descartavel-do-ci-com-mais-de-32-caracteres
+      DOMINIO: localhost
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar o docker-compose.yml
+        run: docker compose config --quiet
+
+      # Sem o Caddy: ele precisa de um domínio real para o certificado. Banco, API e front sobem de verdade.
+      - name: Construir e subir banco, API e front
+        run: docker compose up -d --build db api web
+
+      - name: Esperar ficarem saudáveis
+        run: |
+          for i in $(seq 1 36); do
+            [ "$(docker compose ps --format '{{.Health}}' | grep -c '^healthy$')" = 3 ] && exit 0
+            sleep 5
+          done
+          echo "A pilha não ficou saudável em 3 minutos"; docker compose ps; exit 1
+
+      # De dentro da rede do Docker, como o front faz: a API responde e fala com o banco.
+      - name: Conferir API e front
+        run: |
+          docker compose exec -T web node -e "fetch('http://api:8000/pronto').then(r=>process.exit(r.ok?0:1))"
+          docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1))"
+
+      - name: Logs (só se falhou)
+        if: failure()
+        run: docker compose logs --tail=100
+
+      - name: Desligar
+        if: always()
+        run: docker compose down -v
