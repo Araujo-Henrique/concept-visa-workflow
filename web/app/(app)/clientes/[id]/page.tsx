@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { EsqueletoHistorico, HistoricoAlteracoes } from "@/components/auditoria/historico-alteracoes";
 import { EditarCliente, ExcluirCliente } from "@/components/clientes/controles";
 import { SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { Button } from "@/components/ui/button";
@@ -158,6 +159,12 @@ async function Conteudo({ params }: { params: PageProps<"/clientes/[id]">["param
           </ol>
         )}
       </section>
+
+      {pode(usuario.perfil, "administrar") && (
+        <Suspense fallback={<EsqueletoHistorico />}>
+          <HistoricoAlteracoes filtro={{ cliente_id: cliente.id }} />
+        </Suspense>
+      )}
     </>
   );
 }

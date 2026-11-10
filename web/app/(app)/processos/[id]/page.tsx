@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { EsqueletoHistorico, HistoricoAlteracoes } from "@/components/auditoria/historico-alteracoes";
 import { VistaProcesso } from "@/components/passaporte/vista-processo";
 import { SeloResultado, SeloSituacao } from "@/components/processos/selos";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -82,6 +83,12 @@ async function Conteudo({ params }: { params: PageProps<"/processos/[id]">["para
         referencias={referencias}
         permissoes={{ escrever: pode(usuario.perfil, "escrever"), apagar: pode(usuario.perfil, "apagar") }}
       />
+
+      {pode(usuario.perfil, "administrar") && (
+        <Suspense fallback={<EsqueletoHistorico />}>
+          <HistoricoAlteracoes filtro={{ processo_id: id }} />
+        </Suspense>
+      )}
     </>
   );
 }
