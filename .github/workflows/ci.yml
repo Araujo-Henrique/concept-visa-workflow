@@ -158,7 +158,7 @@ jobs:
         run: |
           nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
           for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8000/docs > /dev/null && exit 0
+            curl -sf http://127.0.0.1:8000/saude > /dev/null && exit 0
             sleep 1
           done
           echo "A API não subiu em 30s"; cat api.log; exit 1

@@ -57,7 +57,7 @@ Os avisos moderados que restam no `npm audit` completo estão em ferramentas de 
 `shadcn`) e dependem de atualização das próprias bibliotecas; as correções que o npm sugere são rebaixar versões.
 
 ## API
-Com o servidor ligado (`uvicorn app.main:app --reload --env-file .env`), a documentação interativa fica em `/docs`.
+Com o servidor ligado (`API_DOCS=true uvicorn app.main:app --reload --env-file .env`; o `/docs` vem desligado por padrão), a documentação interativa fica em `/docs`.
 
 | Recurso | Rotas |
 |---|---|
@@ -117,7 +117,7 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
   `JWT_SESSAO_MAXIMA_HORAS` (padrão 10) depois dele: aí responde 401 e é preciso entrar de novo.
 - Falhas de login por senha (senha errada, e-mail inexistente, usuário inativo, sem senha ou que não é admin) dão a
   mesma resposta 401. Quem não vai poder entrar nem chega a ter a senha conferida.
-- `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.
+- `JWT_SECRET` (mínimo 32 caracteres, aleatório, com variedade e sem valores de exemplo) vem do `.env`; a API recusa subir sem um segredo válido.
 - Processos e eventos registram quem os criou ou alterou.
 
 ### Login com o Google (OpenID Connect, código de autorização + PKCE)
@@ -187,7 +187,7 @@ Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). O
   Públicas, devolvem só `{"status": ...}`, não contam no limite por IP e ficam fora do log normal (só em `DEBUG`).
   Separadas de propósito: se o banco cai, a API não deve ser reiniciada à toa (é o que um `healthcheck` do Docker
   e o Nginx vão usar no Projeto 5: `/saude` para reiniciar, `/pronto` para tirar da rotação).
-- `API_DOCS=false` tira o `/docs` e o `/openapi.json` (use em produção).
+- `API_DOCS=true` liga o `/docs` e o `/openapi.json` (desligados por padrão; só em desenvolvimento). O teto de corpo (`LIMITE_CORPO_KB`) conta os bytes recebidos, inclusive em envio em partes; um processo aceita no máximo 50 pessoas.
 - A contagem fica na memória da API: vale para **um processo** (o nosso caso). Com vários workers ou servidores,
   cada um contaria por si; aí a contagem precisa ir para o Redis. Reiniciar a API zera as contagens.
 - O front manda cabeçalhos de segurança em toda página (`web/next.config.ts`): sem iframe de outro site
