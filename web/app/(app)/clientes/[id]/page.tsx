@@ -48,7 +48,7 @@ async function Conteudo({ params }: { params: PageProps<"/clientes/[id]">["param
     usuarioAtual(),
   ]);
   const escreve = pode(usuario.perfil, "escrever");
-  const apaga = pode(usuario.perfil, "apagar"); // só admin
+  const apaga = pode(usuario.perfil, "apagar_cliente"); // admin e atendente (o admin restaura)
   const whatsapp = linkWhatsapp(cliente.telefone);
 
   return (

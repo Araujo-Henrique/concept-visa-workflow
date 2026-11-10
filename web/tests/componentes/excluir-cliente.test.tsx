@@ -34,7 +34,7 @@ describe("Excluir cliente", () => {
     render(<ExcluirCliente cliente={cliente} processos={2} />);
     await userEvent.click(screen.getByRole("button", { name: /Excluir/ }));
     expect(screen.getByRole("dialog")).toHaveTextContent("os 2 processos");
-    const confirmar = screen.getByRole("button", { name: "Excluir definitivamente" });
+    const confirmar = screen.getByRole("button", { name: "Excluir cliente" });
     expect(confirmar).toBeDisabled();
     await userEvent.type(screen.getByLabelText(/digite o nome/), "Joana Prado");
     expect(confirmar).toBeDisabled();
@@ -50,7 +50,7 @@ describe("Excluir cliente", () => {
     await userEvent.click(screen.getByRole("button", { name: /Excluir/ }));
     expect(screen.getByRole("dialog")).toHaveTextContent("o processo dele");
     await userEvent.type(screen.getByLabelText(/digite o nome/), "Joana Prado Lins");
-    await userEvent.click(screen.getByRole("button", { name: "Excluir definitivamente" }));
+    await userEvent.click(screen.getByRole("button", { name: "Excluir cliente" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("não permite");
     expect(mockReplace).not.toHaveBeenCalled();
   });

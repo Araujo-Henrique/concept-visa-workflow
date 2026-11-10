@@ -133,6 +133,56 @@ describe("descreverAlteracao", () => {
   });
 });
 
+describe("restauração e eliminação no histórico", () => {
+  it("uma restauração vira uma frase só: o cliente; o resto que foi recolocado não aparece", () => {
+    const r = (p: Partial<Alteracao>) =>
+      descreverAlteracao(linha({ origem: "restauracao", acao: "criou", ...p }));
+    expect(r({ depois: { nome: "Ana Souza" } })?.titulo).toBe("Cliente restaurado da exclusão: Ana Souza");
+    expect(r({ tabela: "processos", depois: { tipo: "OBT", situacao: "Pago" } })).toBeNull();
+    expect(r({ tabela: "solicitantes", depois: { nome: "Bia" } })).toBeNull();
+    expect(r({ tabela: "formularios_ds160", depois: { codigo: "AA00ABC123" } })).toBeNull();
+    // e religar a tentativa anterior também é parte da restauração, não uma edição de alguém
+    expect(
+      descreverAlteracao(
+        linha({
+          origem: "restauracao",
+          tabela: "processos",
+          antes: { situacao: "A" },
+          depois: { situacao: "B" },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("a mesma operação feita por uma pessoa continua aparecendo normalmente", () => {
+    expect(descreverAlteracao(linha({ acao: "criou", depois: { nome: "Ana" } }))?.titulo).toBe(
+      "Cliente cadastrado: Ana",
+    );
+  });
+
+  it("a lápide da eliminação mostra o motivo e não tem nenhum dado do cliente", () => {
+    const d = descreverAlteracao(
+      linha({
+        acao: "eliminou",
+        registro_id: 12,
+        antes: null,
+        depois: { motivo: "Pedido do titular", linhas_removidas: 30, processos: 2 },
+      }),
+    );
+    expect(d).toEqual({
+      id: expect.any(Number),
+      titulo: "Cliente nº 12 eliminado definitivamente",
+      campos: [{ rotulo: "Motivo", antes: "Pedido do titular", depois: null }],
+    });
+  });
+
+  it("linhas do histórico de situações (eventos) não aparecem: já estão na linha do tempo do processo", () => {
+    expect(
+      descreverAlteracao(linha({ tabela: "eventos", acao: "criou", depois: { tipo: "criado" } })),
+    ).toBeNull();
+  });
+});
+
 describe("agruparAlteracoes", () => {
   it("junta a mesma transação num bloco, na ordem em que aconteceu; blocos do mais novo ao mais antigo", () => {
     // a API manda da mais nova para a mais antiga

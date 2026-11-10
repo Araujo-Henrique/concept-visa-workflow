@@ -11,7 +11,7 @@ export type Alteracao = {
   registro_id: number;
   processo_id: number | null;
   cliente_id: number | null;
-  acao: "criou" | "editou" | "apagou";
+  acao: "criou" | "editou" | "apagou" | "eliminou";
   antes: Record<string, unknown> | null;
   depois: Record<string, unknown> | null;
   usuario_id: number | null;
@@ -20,6 +20,29 @@ export type Alteracao = {
   origem: string;
   transacao: number;
   criado_em: string;
+};
+
+/** Cliente excluído que ainda tem cópia na auditoria (dá para restaurar ou eliminar de vez). */
+export type ClienteExcluido = {
+  cliente_id: number;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  apagado_em: string;
+  usuario_id: number | null;
+  apagado_por: string | null;
+  origem: string;
+  n_processos: number;
+};
+
+export type Restauracao = {
+  cliente_id: number;
+  nome: string;
+  processos: number;
+  pessoas: number;
+  formularios: number;
+  eventos: number;
+  vinculos: number;
 };
 
 export type Campo = { rotulo: string; antes: string | null; depois: string | null };
@@ -102,6 +125,15 @@ const texto = (registro: Record<string, unknown> | null, campo: string) => Strin
 
 function titulo(a: Alteracao): string | null {
   const r = a.acao === "apagou" ? a.antes : a.depois;
+  if (a.tabela === "eventos") return null; // a linha do tempo do processo já mostra; só serve à restauração
+  if (a.origem === "restauracao") {
+    // uma restauração recoloca dezenas de linhas: no histórico vira uma frase só, no cliente
+    if (a.tabela === "clientes" && a.acao === "criou")
+      return `Cliente restaurado da exclusão: ${texto(r, "nome")}`;
+    return null;
+  }
+  if (a.tabela === "clientes" && a.acao === "eliminou")
+    return `Cliente nº ${a.registro_id} eliminado definitivamente`;
   switch (a.tabela) {
     case "clientes":
       if (a.acao === "criou") return `Cliente cadastrado: ${texto(r, "nome")}`;
@@ -148,6 +180,8 @@ export function descreverAlteracao(a: Alteracao): Descricao | null {
         depois: formatarValor(c, a.depois?.[c]),
       }));
     if (campos.length === 0) return null; // só mudou coluna técnica
+  } else if (a.acao === "eliminou") {
+    campos = [{ rotulo: "Motivo", antes: String(a.depois?.motivo ?? "—"), depois: null }];
   } else if (a.acao === "apagou") {
     campos = Object.entries(a.antes ?? {})
       .filter(([c, v]) => !OCULTOS.has(c) && v !== null && v !== "")

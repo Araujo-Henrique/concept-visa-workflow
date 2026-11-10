@@ -4,12 +4,13 @@ import type { Perfil } from "@/lib/tipos";
  * Espelho da regra da API (app/permissoes.py), só para mostrar ou esconder botões.
  * Quem decide de verdade continua sendo a API (401/403): esconder um botão não protege nada.
  */
-export type Acao = "ler" | "escrever" | "apagar" | "administrar";
+/** `apagar_cliente`: excluir um cliente (atendente também: o admin restaura). `apagar`: o resto, só admin. */
+export type Acao = "ler" | "escrever" | "apagar" | "apagar_cliente" | "administrar";
 
 const PERMISSOES: Record<Perfil, readonly Acao[]> = {
   leitor: ["ler"],
-  atendente: ["ler", "escrever"],
-  admin: ["ler", "escrever", "apagar", "administrar"],
+  atendente: ["ler", "escrever", "apagar_cliente"],
+  admin: ["ler", "escrever", "apagar", "apagar_cliente", "administrar"],
 };
 
 export function pode(perfil: string | null | undefined, acao: Acao): boolean {

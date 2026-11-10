@@ -88,7 +88,10 @@ export function nomeConfere(digitado: string, nome: string): boolean {
   return limpar(digitado) !== "" && limpar(digitado) === limpar(nome);
 }
 
-/** Só admin. Apaga o cliente e todos os processos dele (ex.: desistiu e pediu para ser retirado). */
+/**
+ * Admin e atendente. Exclui o cliente e os processos dele do sistema (ex.: desistiu). Não é perda de dados: um
+ * administrador consegue restaurar em "Clientes excluídos"; só ele elimina de vez.
+ */
 export function ExcluirCliente({ cliente, processos }: { cliente: Cliente; processos: number }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -124,7 +127,7 @@ export function ExcluirCliente({ cliente, processos }: { cliente: Cliente; proce
               {processos > 0
                 ? `Apaga ${cliente.nome} e ${processos === 1 ? "o processo" : `os ${processos} processos`} dele, com as pessoas, os formulários DS-160 e o histórico.`
                 : `Apaga ${cliente.nome} do sistema.`}{" "}
-              Não dá para desfazer.
+              Se foi engano, um administrador consegue restaurar.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -163,7 +166,7 @@ export function ExcluirCliente({ cliente, processos }: { cliente: Cliente; proce
                 Cancelar
               </Button>
               <Button type="submit" variant="destructive" disabled={!confere || apagando}>
-                {apagando ? "Excluindo…" : "Excluir definitivamente"}
+                {apagando ? "Excluindo…" : "Excluir cliente"}
               </Button>
             </div>
           </form>

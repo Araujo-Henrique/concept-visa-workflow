@@ -26,8 +26,8 @@ export async function buscarClientes(termo: string): Promise<ClienteLista[]> {
 }
 
 /**
- * Apaga o cliente do banco junto com os processos dele (pessoas, formulários e histórico). Só admin: a API
- * recusa os demais com 403. Definitivo: não há lixeira.
+ * Exclui o cliente junto com os processos dele (pessoas, formulários e histórico). Admin e atendente; o leitor
+ * recebe 403. Não é definitivo: o admin restaura em "Clientes excluídos" (a cópia fica na auditoria).
  */
 export async function excluirCliente(clienteId: number) {
   return tentar(() => apiEnviar("DELETE", `/clientes/${clienteId}?com_processos=true`));

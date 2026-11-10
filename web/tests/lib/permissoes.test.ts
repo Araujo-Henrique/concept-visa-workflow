@@ -9,11 +9,15 @@ describe("pode (espelho de app/permissoes.py)", () => {
   it("atendente consulta e escreve, mas não apaga nem administra", () => {
     expect(pode("atendente", "escrever")).toBe(true);
     expect(pode("atendente", "apagar")).toBe(false);
+    expect(pode("atendente", "apagar_cliente")).toBe(true); // exclui cliente (o admin restaura)
+    expect(pode("leitor", "apagar_cliente")).toBe(false);
     expect(pode("atendente", "administrar")).toBe(false);
   });
 
   it("admin pode tudo", () => {
-    expect(["ler", "escrever", "apagar", "administrar"].every((a) => pode("admin", a as never))).toBe(true);
+    expect(
+      ["ler", "escrever", "apagar", "apagar_cliente", "administrar"].every((a) => pode("admin", a as never)),
+    ).toBe(true);
   });
 
   it("perfil desconhecido ou vazio não pode nada (nega por padrão)", () => {

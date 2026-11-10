@@ -1,9 +1,10 @@
-import { Mail, Phone } from "lucide-react";
+import { ArchiveRestore, Mail, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { BuscaClientes, NovoCliente, PaginacaoClientes } from "@/components/clientes/controles";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiLista } from "@/lib/api";
 import { formatarTelefone } from "@/lib/formularios";
@@ -46,11 +47,16 @@ async function Conteudo({ searchParams }: { searchParams: PageProps<"/clientes">
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <BuscaClientes inicial={termo} />
-        {pode(usuario.perfil, "escrever") && (
-          <div className="ml-auto">
-            <NovoCliente />
-          </div>
-        )}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {pode(usuario.perfil, "administrar") && (
+            <Button variant="outline" className="h-11" asChild>
+              <Link href="/clientes/excluidos">
+                <ArchiveRestore className="size-4" /> Clientes excluídos
+              </Link>
+            </Button>
+          )}
+          {pode(usuario.perfil, "escrever") && <NovoCliente />}
+        </div>
       </div>
 
       {itens.length === 0 ? (
