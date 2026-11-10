@@ -69,9 +69,9 @@ def atualizar(cliente_id: int, dados: ClienteUpdate, sessao: Sessao):
 @router.delete("/{cliente_id}", status_code=204)
 def remover(cliente_id: int, sessao: Sessao,
             com_processos: bool = Query(False, description="Apaga também os processos do cliente")):
-    """Apaga o cliente do banco (ex.: desistiu e pediu para ser retirado). Só admin: DELETE exige a permissão
-    `apagar`. Com processos, só apaga se `com_processos=true`: aí saem junto os processos, solicitantes,
-    formulários e eventos. Não há lixeira: a remoção é definitiva."""
+    """Exclui o cliente (ex.: desistiu e pediu para ser retirado). Admin e atendente: a permissão é `apagar_cliente`.
+    Com processos, só exclui se `com_processos=true`: aí saem junto os processos, solicitantes, formulários e eventos.
+    Não é perda de dados: a cópia fica na auditoria e o admin restaura (GET /auditoria/apagados); só ele elimina de vez."""
     cliente = obter_ou_404(sessao, Cliente, cliente_id, "Cliente")
     processos = list(cliente.processos)
     if processos and not com_processos:

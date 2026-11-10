@@ -68,6 +68,10 @@ def atualizar(usuario_id: int, dados: UsuarioUpdate, sessao: Sessao, admin: Usua
 @router.post("/{usuario_id}/senha", status_code=204)
 def redefinir_senha(usuario_id: int, dados: NovaSenha, sessao: Sessao, admin: UsuarioAtual):
     alvo = obter_ou_404(sessao, Usuario, usuario_id, "Usuário")
+    if alvo.id == admin.id:
+        # a troca da própria senha exige a senha atual (e conta as tentativas erradas): quem pegou um computador
+        # logado não pode contornar isso por aqui
+        raise HTTPException(status_code=409, detail="Para trocar a sua própria senha use 'Minha conta' (pede a senha atual)")
     if alvo.perfil.nome != "admin":
         raise HTTPException(status_code=409, detail=SO_ADMIN_TEM_SENHA)
     try:

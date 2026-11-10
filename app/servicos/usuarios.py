@@ -38,6 +38,9 @@ def definir_senha(sessao: Session, email: str, senha: str) -> Usuario:
     usuario = achar_por_email(sessao, email)
     if usuario is None:
         raise ErroDeRegra("Usuário não encontrado", status=404)
+    if usuario.perfil.nome != "admin":
+        # só admin entra com senha; uma senha definida aqui ficaria "viva" se a pessoa fosse promovida depois
+        raise ErroDeRegra("Só administradores têm senha; os demais perfis entram com o Google", status=409)
     usuario.senha_hash = seguranca.gerar_hash(senha)
     return usuario
 
@@ -56,6 +59,15 @@ def _outros_admins_ativos(sessao: Session, alvo: Usuario) -> int:
         .where(Perfil.nome == "admin", Usuario.ativo.is_(True), Usuario.id != alvo.id))
 
 
+def _travar_administradores(sessao: Session) -> None:
+    """Trava (FOR UPDATE) as linhas de todos os administradores até o fim da transação. Sem isto, dois admins que
+    rebaixam um ao outro AO MESMO TEMPO contam, cada um, "ainda existe um administrador" (o outro), os dois passam e
+    os dois gravam: sobra zero. Com a trava, o segundo espera o primeiro terminar e então conta de verdade."""
+    sessao.execute(
+        select(Usuario).join(Perfil).where(Perfil.nome == "admin").order_by(Usuario.id)
+        .with_for_update(of=Usuario).execution_options(populate_existing=True)).all()
+
+
 def atualizar_usuario(sessao: Session, alvo: Usuario, feito_por: Usuario, nome: str | None = None,
                       perfil: str | None = None, ativo: bool | None = None) -> Usuario:
     """Muda nome, perfil ou ativo e registra cada mudança na auditoria (o commit é de quem chama).
@@ -67,6 +79,9 @@ def atualizar_usuario(sessao: Session, alvo: Usuario, feito_por: Usuario, nome: 
         if novo_perfil is None:
             raise ErroDeRegra(f"Perfil '{perfil}' não existe (use {[p.nome for p in sessao.scalars(select(Perfil))]})")
 
+    if alvo.perfil.nome == "admin":  # pode estar saindo do conjunto de administradores: serializa e relê o estado
+        _travar_administradores(sessao)
+        sessao.refresh(alvo)
     era_admin_ativo = alvo.perfil.nome == "admin" and alvo.ativo
     sera_admin_ativo = (novo_perfil.nome if novo_perfil else alvo.perfil.nome) == "admin" and \
                        (alvo.ativo if ativo is None else ativo)
