@@ -107,7 +107,7 @@ export function FormLogin({
           </a>
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          Use o e-mail cadastrado pela Concept Vistos. Quem não estiver cadastrado não entra.
+          Solicite a liberação de acesso para a Concept Vistos.
         </p>
 
         {!mostrarSenha && (
