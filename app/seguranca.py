@@ -73,14 +73,16 @@ def impressao_do_corpo(corpo: bytes) -> str:
     return hmac.new(chave, corpo, hashlib.sha256).hexdigest()
 
 
-def criar_token(usuario_id: int, validade: timedelta | None = None, inicio: datetime | None = None) -> str:
+def criar_token(usuario_id: int, validade: timedelta | None = None, inicio: datetime | None = None,
+                versao: int = 0) -> str:
     """Token novo. `inicio` é a hora do login (numa renovação, a do login original): a validade nunca passa
-    do teto da sessão contado a partir dele."""
+    do teto da sessão contado a partir dele. `versao` é o token_version do usuário: se o banco subir o número
+    (senha trocada, usuário desativado), este token deixa de valer."""
     agora = datetime.now(timezone.utc)
     inicio = inicio or agora
     expira = min(agora + (validade or timedelta(minutes=minutos_de_validade())),
                  inicio + timedelta(hours=horas_maximas_da_sessao()))
-    corpo = {"sub": str(usuario_id), "iat": agora, "ini": int(inicio.timestamp()), "exp": expira}
+    corpo = {"sub": str(usuario_id), "iat": agora, "ini": int(inicio.timestamp()), "exp": expira, "tv": versao}
     return jwt.encode(corpo, _segredo(), algorithm=ALGORITMO)
 
 
@@ -100,6 +102,18 @@ def ler_token(token: str) -> int | None:
     return None if corpo is None else int(corpo["sub"])
 
 
+def ler_sessao(token: str) -> tuple[int, int] | None:
+    """(id do usuário, versão do token) de um token autêntico e na validade; senão None. Token antigo, sem
+    versão, vale como 0."""
+    corpo = _ler(token)
+    if corpo is None:
+        return None
+    try:
+        return int(corpo["sub"]), int(corpo.get("tv", 0))
+    except (ValueError, TypeError):
+        return None
+
+
 def renovar_token(token: str) -> tuple[str, int] | None:
     """Troca um token válido por um novo, mantendo a hora do login. Devolve (token, minutos que ele vale) ou
     None quando o teto da sessão já chegou (falta menos de 1 minuto): aí só entrando de novo."""
@@ -112,4 +126,5 @@ def renovar_token(token: str) -> tuple[str, int] | None:
     minutos = int(min(timedelta(minutes=minutos_de_validade()), teto - agora).total_seconds() // 60)
     if minutos < 1:
         return None
-    return criar_token(int(corpo["sub"]), validade=timedelta(minutes=minutos), inicio=inicio), minutos
+    return criar_token(int(corpo["sub"]), validade=timedelta(minutes=minutos), inicio=inicio,
+                        versao=int(corpo.get("tv", 0))), minutos

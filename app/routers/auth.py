@@ -60,7 +60,7 @@ def login(dados: Login, sessao: Sessao, request: Request):
         registro.warning("login falhou para %s (IP %s)", _mascarar(conta), ip)
         raise CREDENCIAIS_INVALIDAS
     limites.falhas_por_conta.esquecer(conta)
-    return Token(access_token=seguranca.criar_token(usuario.id), expira_em_minutos=seguranca.minutos_de_validade())
+    return Token(access_token=seguranca.criar_token(usuario.id, versao=usuario.token_version), expira_em_minutos=seguranca.minutos_de_validade())
 
 
 @router.get("/google/config", response_model=ConfigGoogle)
@@ -91,7 +91,7 @@ def login_google(dados: LoginGoogle, sessao: Sessao, request: Request):
                          "desativado" if usuario else "não cadastrado", ip)
         raise HTTPException(status_code=403, detail="Este e-mail não tem acesso ao sistema")
     registro.info("login Google: %s (IP %s)", _mascarar(usuario.email.lower()), ip)
-    return Token(access_token=seguranca.criar_token(usuario.id), expira_em_minutos=seguranca.minutos_de_validade())
+    return Token(access_token=seguranca.criar_token(usuario.id, versao=usuario.token_version), expira_em_minutos=seguranca.minutos_de_validade())
 
 
 @router.get("/eu", response_model=UsuarioOut, dependencies=[Depends(usuario_atual)])
@@ -112,7 +112,7 @@ def renovar(usuario: UsuarioAtual, credenciais: Annotated[HTTPAuthorizationCrede
     return Token(access_token=token, expira_em_minutos=minutos)
 
 
-@router.post("/senha", status_code=204)
+@router.post("/senha", response_model=Token)
 def trocar_senha(dados: TrocaDeSenha, sessao: Sessao, usuario: UsuarioAtual):
     """Qualquer perfil troca a própria senha (precisa da senha atual). Não passa pela regra de método
     porque está fora dos routers protegidos: aqui basta estar logado. Errar a senha atual conta como no
@@ -130,3 +130,6 @@ def trocar_senha(dados: TrocaDeSenha, sessao: Sessao, usuario: UsuarioAtual):
         raise HTTPException(status_code=erro.status, detail=erro.mensagem)
     limites.falhas_por_conta.esquecer(chave)
     sessao.commit()
+    # as outras sessões caíram (token_version subiu); esta continua com um token da versão nova
+    return Token(access_token=seguranca.criar_token(usuario.id, versao=usuario.token_version),
+                 expira_em_minutos=seguranca.minutos_de_validade())

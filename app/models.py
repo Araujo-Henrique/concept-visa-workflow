@@ -44,6 +44,8 @@ class Usuario(Base):
     senha_hash: Mapped[str | None] = mapped_column(String(200))  # nulo = só entra com Google
     perfil_id: Mapped[int] = mapped_column(ForeignKey("perfis.id"))
     ativo: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    # sobe quando a senha muda ou a pessoa é desativada: tokens com número menor deixam de valer
+    token_version: Mapped[int] = mapped_column(server_default=text("0"))
 
     perfil: Mapped[Perfil] = relationship()
 

@@ -31,12 +31,13 @@ def usuario_atual(request: Request, sessao: Sessao,
         status_code=401, detail="Faça login para acessar", headers={"WWW-Authenticate": "Bearer"})
     if credenciais is None:
         raise nao_autenticado
-    usuario_id = seguranca.ler_token(credenciais.credentials)
-    if usuario_id is None:
+    lido = seguranca.ler_sessao(credenciais.credentials)
+    if lido is None:
         raise nao_autenticado
+    usuario_id, versao = lido
     usuario = sessao.get(Usuario, usuario_id)
-    if usuario is None:
-        raise nao_autenticado
+    if usuario is None or usuario.token_version != versao:
+        raise nao_autenticado  # senha trocada ou acesso cortado depois que este token foi emitido
     if not usuario.ativo:
         raise HTTPException(status_code=403, detail="Acesso desativado")
     request.state.usuario_id = usuario.id  # o log da requisição diz quem foi

@@ -390,3 +390,81 @@ def test_script_nao_define_senha_para_quem_nao_e_admin(sessao):
     sessao.commit()
     with pytest.raises(ErroDeRegra, match="Só administradores têm senha"):
         servico.definir_senha(sessao, "at@exemplo.com", "uma-senha-bem-longa-123")
+
+
+# ---------------------------------------------------------------- revogação de tokens (token_version)
+
+def _logar(client_anonimo, email, senha):
+    r = client_anonimo.post("/auth/login", json={"email": email, "senha": senha})
+    assert r.status_code == 200
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
+def test_token_antigo_sem_versao_continua_valendo_como_versao_zero(client, usuario_teste):
+    import jwt as pyjwt
+    from datetime import datetime, timedelta, timezone
+    corpo = {"sub": str(usuario_teste.id), "exp": datetime.now(timezone.utc) + timedelta(minutes=5)}
+    antigo = pyjwt.encode(corpo, __import__("os").environ["JWT_SECRET"], algorithm="HS256")
+    assert client.get("/auth/eu", headers={"Authorization": f"Bearer {antigo}"}).status_code == 200
+
+
+def test_redefinir_a_senha_derruba_as_sessoes_antigas_da_pessoa(client, client_anonimo, sessao):
+    alvo = criar_usuario(sessao, "Alvo", "alvo@exemplo.com", "admin", "senha-do-alvo-1234")
+    sessao.commit()
+    antigo = _logar(client_anonimo, "alvo@exemplo.com", "senha-do-alvo-1234")
+    assert client_anonimo.get("/auth/eu", headers=antigo).status_code == 200
+    assert client.post(f"/usuarios/{alvo.id}/senha", json={"senha": "outra-senha-bem-longa-9"}).status_code == 204
+    assert client_anonimo.get("/auth/eu", headers=antigo).status_code == 401  # o token roubado morreu
+    novo = _logar(client_anonimo, "alvo@exemplo.com", "outra-senha-bem-longa-9")
+    assert client_anonimo.get("/auth/eu", headers=novo).status_code == 200
+
+
+def test_trocar_a_propria_senha_derruba_as_outras_sessoes_mas_devolve_token_novo(client_anonimo, sessao):
+    criar_usuario(sessao, "Dono", "dono@exemplo.com", "admin", "senha-do-dono-1234")
+    sessao.commit()
+    outra_sessao = _logar(client_anonimo, "dono@exemplo.com", "senha-do-dono-1234")
+    esta = _logar(client_anonimo, "dono@exemplo.com", "senha-do-dono-1234")
+    r = client_anonimo.post("/auth/senha", headers=esta,
+                            json={"senha_atual": "senha-do-dono-1234", "nova_senha": "senha-nova-do-dono-99"})
+    assert r.status_code == 200
+    assert client_anonimo.get("/auth/eu", headers=esta).status_code == 401
+    assert client_anonimo.get("/auth/eu", headers=outra_sessao).status_code == 401
+    continua = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    assert client_anonimo.get("/auth/eu", headers=continua).status_code == 200
+    renovado = client_anonimo.post("/auth/renovar", headers=continua)  # a renovação mantém a versão
+    assert renovado.status_code == 200
+    assert client_anonimo.get("/auth/eu", headers={"Authorization": f"Bearer {renovado.json()['access_token']}"}).status_code == 200
+
+
+def test_desativar_e_reativar_nao_ressuscita_o_token_de_antes(client, como, sessao):
+    atendente = como("atendente")
+    assert atendente.get("/auth/eu").status_code == 200
+    client.patch(f"/usuarios/{atendente.usuario.id}", json={"ativo": False})
+    client.patch(f"/usuarios/{atendente.usuario.id}", json={"ativo": True})
+    assert atendente.get("/auth/eu").status_code == 401
+
+
+def test_admin_rebaixado_perde_a_senha_e_o_token(client, client_anonimo, sessao):
+    alvo = criar_usuario(sessao, "Outro", "outro@exemplo.com", "admin", "senha-do-outro-1234")
+    sessao.commit()
+    token = _logar(client_anonimo, "outro@exemplo.com", "senha-do-outro-1234")
+    client.patch(f"/usuarios/{alvo.id}", json={"perfil": "atendente"})
+    assert client_anonimo.get("/auth/eu", headers=token).status_code == 401
+
+
+# ---------------------------------------------------------------- seed e conexão
+
+def test_seed_recusa_banco_com_usuario_que_nao_e_do_seed(sessao):
+    from app.seed import semear
+    criar_usuario(sessao, "Gente de Verdade", "gente@empresa.com.br", "admin", "senha-bem-longa-123")
+    sessao.commit()
+    with pytest.raises(RuntimeError, match="não são do seed"):
+        semear(sessao, None, quantidade=2)
+    semear(sessao, None, quantidade=2, aceitar_usuarios_existentes=True)  # o admin de desenvolvimento, de propósito
+
+
+def test_a_conexao_com_o_banco_tem_prazo_para_abrir(monkeypatch):
+    capturado = {}
+    monkeypatch.setattr(db, "create_engine", lambda url, **kw: capturado.update(kw))
+    db.criar_engine("postgresql+psycopg://u:p@localhost/qualquer_test")
+    assert capturado["connect_args"]["connect_timeout"] == 5

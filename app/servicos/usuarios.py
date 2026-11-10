@@ -42,6 +42,7 @@ def definir_senha(sessao: Session, email: str, senha: str) -> Usuario:
         # só admin entra com senha; uma senha definida aqui ficaria "viva" se a pessoa fosse promovida depois
         raise ErroDeRegra("Só administradores têm senha; os demais perfis entram com o Google", status=409)
     usuario.senha_hash = seguranca.gerar_hash(senha)
+    usuario.token_version += 1  # sessões abertas com a senha antiga caem
     return usuario
 
 
@@ -94,10 +95,13 @@ def atualizar_usuario(sessao: Session, alvo: Usuario, feito_por: Usuario, nome: 
         if novo_perfil.nome != "admin" and alvo.senha_hash is not None:
             # só admin entra com senha: quem deixa de ser admin passa a entrar só com o Google
             alvo.senha_hash = None
+            alvo.token_version += 1
             _registrar(sessao, alvo, feito_por, "senha", None, "removida (deixou de ser administrador)")
     if ativo is not None and ativo != alvo.ativo:
         _registrar(sessao, alvo, feito_por, "ativo", alvo.ativo, ativo)
         alvo.ativo = ativo
+        if not ativo:
+            alvo.token_version += 1  # reativar depois não ressuscita os tokens de antes
     if nome is not None and nome.strip() != alvo.nome:
         _registrar(sessao, alvo, feito_por, "nome", alvo.nome, nome.strip())
         alvo.nome = nome.strip()
@@ -108,6 +112,7 @@ def redefinir_senha(sessao: Session, alvo: Usuario, feito_por: Usuario, nova: st
     """Admin define a senha de outro usuário. A auditoria guarda só que houve a troca, nunca a senha."""
     _validar_senha(nova)
     alvo.senha_hash = seguranca.gerar_hash(nova)
+    alvo.token_version += 1  # quem estava logado com a senha antiga precisa entrar de novo
     _registrar(sessao, alvo, feito_por, "senha", None, "redefinida")
     return alvo
 
@@ -117,5 +122,6 @@ def trocar_propria_senha(sessao: Session, usuario: Usuario, atual: str, nova: st
         raise ErroDeRegra("Senha atual incorreta")
     _validar_senha(nova)
     usuario.senha_hash = seguranca.gerar_hash(nova)
+    usuario.token_version += 1  # derruba as outras sessões; a rota devolve um token novo para esta
     _registrar(sessao, usuario, usuario, "senha", None, "trocada pelo próprio usuário")
     return usuario

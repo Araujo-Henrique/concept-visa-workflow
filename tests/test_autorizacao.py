@@ -86,8 +86,10 @@ def test_401_sem_login_e_403_com_login_sem_permissao(como, client_anonimo):
     assert como("leitor").get("/usuarios").status_code == 403  # sei quem é, mas não pode
 
 
-def test_perfil_alterado_vale_na_proxima_requisicao(como, client):
+def test_perfil_alterado_vale_na_proxima_requisicao(como, client, sessao):
     atendente = como("atendente")
+    atendente.usuario.senha_hash = None  # na vida real só admin tem senha; com senha, rebaixar derruba o token (401)
+    sessao.commit()
     assert atendente.post("/clientes", json={"nome": "Ana"}).status_code == 201
     client.patch(f"/usuarios/{atendente.usuario.id}", json={"perfil": "leitor"})  # o admin rebaixa
     assert atendente.post("/clientes", json={"nome": "Bia"}).status_code == 403  # mesmo token de antes
@@ -126,7 +128,14 @@ def test_desativar_pelo_admin_corta_o_acesso_na_hora(como, client):
     assert atendente.get("/clientes").status_code == 200
     resposta = client.patch(f"/usuarios/{atendente.usuario.id}", json={"ativo": False})
     assert resposta.status_code == 200 and resposta.json()["ativo"] is False
-    assert atendente.get("/clientes").status_code == 403  # mesmo token, ainda dentro da validade
+    assert atendente.get("/clientes").status_code == 401  # mesmo token, ainda dentro da validade: agora revogado
+
+
+def test_ativo_falso_no_banco_continua_dando_403_mesmo_com_token_valido(como, sessao):
+    atendente = como("atendente")
+    atendente.usuario.ativo = False  # sem passar pela rota (que sobe a versão): o banco continua mandando
+    sessao.commit()
+    assert atendente.get("/clientes").status_code == 403
 
 
 def test_nunca_fica_sem_administrador_ativo(client, usuario_teste, como):
@@ -208,7 +217,9 @@ def test_admin_troca_a_propria_senha(como, client_anonimo):
     assert admin.post("/auth/senha", json=atual_errada).status_code == 422
     assert admin.post("/auth/senha", json={"senha_atual": SENHA_TESTE, "nova_senha": "curta"}).status_code == 422
     ok = {"senha_atual": SENHA_TESTE, "nova_senha": "nova-senha-longa-1"}
-    assert admin.post("/auth/senha", json=ok).status_code == 204
+    trocada = admin.post("/auth/senha", json=ok)
+    assert trocada.status_code == 200 and trocada.json()["access_token"]  # token novo: esta sessão continua
+    assert admin.get("/auth/eu").status_code == 401  # o token de antes morreu
     assert client_anonimo.post("/auth/login", json={"email": email, "senha": SENHA_TESTE}).status_code == 401
     assert client_anonimo.post("/auth/login", json={"email": email, "senha": "nova-senha-longa-1"}).status_code == 200
 
