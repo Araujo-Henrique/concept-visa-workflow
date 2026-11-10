@@ -16,7 +16,7 @@ histórico de mudanças de situação, usuários, perfis de acesso e login. O di
 | 3 | CRUD com ORM, schemas Pydantic, view e rota do painel | concluída |
 | 4 | Workflow: eventos, motivo ao reabrir, trava de linha (`FOR UPDATE`) | concluída |
 | 5a | Autenticação por senha + JWT | concluída |
-| 5b | "Entrar com Google" (OpenID Connect) | adiada: melhoria depois do MVP |
+| 5b | "Entrar com Google" (OpenID Connect, código + PKCE) | concluída |
 | 6 | Autorização por perfil (401 x 403), administração de usuários e auditoria | concluída |
 | 7 | Testes e CI (GitHub Actions: backend, front e ponta a ponta), cobertura e mutações | concluída |
 | 8 | Seed fictício, README e DER no repositório | concluída |
@@ -72,9 +72,11 @@ Relações 1:N: a tabela do lado "muitos" guarda o id do lado "um" (`solicitante
   cada requisição, então desativar alguém ou mudar seu perfil vale na hora.
 - Perfis: `leitor` consulta, `atendente` consulta, cria e edita, `admin` também apaga e administra usuários.
   A permissão é escolhida pelo método HTTP numa regra única, aplicada a todos os routers.
-- Google OpenID Connect (5b, adiada): será uma segunda forma de entrar, ligada ao mesmo usuário pelo e-mail.
-  O token é verificado com a biblioteca do Google; domínio do Workspace e Client ID virão de variáveis de
-  ambiente. O usuário precisa existir e estar ativo em `usuarios`, senão 403.
+- Google OpenID Connect (5b): é o caminho normal de entrada, ligado ao usuário cadastrado pelo e-mail. O Google
+  só prova quem a pessoa é; quem pode entrar é o cadastro (precisa existir e estar ativo, senão 403). Só o `admin`
+  mantém senha, como acesso reserva. Detalhes e variáveis no README.
+- Idempotência (`Idempotency-Key` nas criações), logs com código de requisição, health check (`/saude`,
+  `/pronto`) e auditoria com antes e depois por trigger no banco: veja o README.
 
 ## Qualidade
 - **Backend:** pytest contra um PostgreSQL de verdade (`TEST_DATABASE_URL`, banco `_test` recriado pelas
