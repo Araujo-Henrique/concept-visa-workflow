@@ -6,10 +6,11 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from psycopg.errors import ForeignKeyViolation, QueryCanceled, UniqueViolation
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as SemConexaoLivre
 
-from app import db, deps, limites, logs
+from app import db, deps, limites, logs, seguranca
+from app.limite_de_corpo import LimiteDeCorpo
 from app.routers import (auditoria, auth, clientes, painel, processos, referencias, saude, solicitantes, usuarios,
                          workflow)
 
@@ -17,14 +18,16 @@ from app.routers import (auditoria, auth, clientes, painel, processos, referenci
 @asynccontextmanager
 async def ciclo_de_vida(app: FastAPI):
     # liga a sessão ao banco ao subir o servidor; nos testes ela já vem ligada ao banco de teste
+    seguranca.validar_segredo(os.environ.get("JWT_SECRET", ""))  # segredo fraco ou de exemplo: a API nem sobe
     if db.Session.kw.get("bind") is None:
         db.configurar()
     yield
 
 
 def _docs_ligados() -> bool:
-    # Em produção (VPS), API_DOCS=false tira o /docs e o /openapi.json: o mapa da API não fica à vista.
-    return os.environ.get("API_DOCS", "true").strip().lower() not in ("false", "0", "nao", "não")
+    # Desligado por padrão: o /docs e o /openapi.json são o mapa completo da API e não devem ficar à vista sem
+    # querer em produção. Em desenvolvimento, API_DOCS=true no .env.
+    return os.environ.get("API_DOCS", "false").strip().lower() in ("true", "1", "sim")
 
 
 logs.configurar()
@@ -35,6 +38,9 @@ app = FastAPI(title="Concept Visa Workflow", lifespan=ciclo_de_vida, docs_url="/
               redoc_url="/redoc" if _docs else None, openapi_url="/openapi.json" if _docs else None)
 
 LIMITE_CORPO_BYTES = int(os.environ.get("LIMITE_CORPO_KB", "1024")) * 1024
+# Conta os bytes que chegam (o cabeçalho Content-Length sozinho não vale para corpo "chunked"). Declarado antes dos
+# middlewares abaixo para ficar POR DENTRO deles: o 413 passa pelo log e leva o X-Request-ID.
+app.add_middleware(LimiteDeCorpo, limite=LIMITE_CORPO_BYTES)
 
 
 @app.middleware("http")
@@ -120,3 +126,11 @@ def banco_indisponivel(request: Request, erro: OperationalError):
 def pool_esgotado(request: Request, erro: SemConexaoLivre):
     # todas as conexões do pool ocupadas por DB_ESPERA_CONEXAO segundos: melhor avisar que enfileirar sem fim
     return JSONResponse(status_code=503, content={"detail": "Servidor ocupado. Tente de novo em instantes"})
+
+
+@app.exception_handler(DataError)
+def valor_invalido_para_o_campo(request: Request, erro: DataError):
+    # Valor grande demais ou de tipo errado para a coluna. As telas e os esquemas já barram isso; se algo escapar, a
+    # resposta é 422 sem repetir o valor, e o log registra só o aviso (o engine não imprime parâmetros).
+    registro.warning("valor invalido para o campo em %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=422, content={"detail": "Um dos valores é inválido ou grande demais para o campo"})

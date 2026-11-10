@@ -1,9 +1,9 @@
 import re
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.enums import Resultado, StatusDS
-from app.schemas.comum import Texto
+from app.schemas.comum import Texto, TextoLivre
 
 PADRAO_CODIGO = re.compile(r"^AA00[A-Z0-9]{6}$")
 
@@ -11,9 +11,9 @@ PADRAO_CODIGO = re.compile(r"^AA00[A-Z0-9]{6}$")
 class FormularioNovo(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    codigo: str
+    codigo: str = Field(max_length=20)
     status: StatusDS = StatusDS.PENDENTE
-    observacao: Texto | None = None
+    observacao: TextoLivre | None = None
 
     @field_validator("codigo")
     @classmethod
@@ -29,7 +29,7 @@ class FormularioUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: StatusDS | None = None
-    observacao: Texto | None = None
+    observacao: TextoLivre | None = None
 
 
 class FormularioOut(BaseModel):

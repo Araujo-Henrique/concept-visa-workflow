@@ -20,7 +20,6 @@ Só entra nas rotas que usam `RotaIdempotente`. Login, troca de senha e renovaç
 suas respostas têm token e não devem ser guardadas.
 """
 import asyncio
-import hashlib
 import logging
 import os
 import re
@@ -131,7 +130,7 @@ class RotaIdempotente(APIRoute):
             if usuario_id is None:  # sem login válido: a rota responde 401 como sempre
                 return await original(request)
 
-            impressao = hashlib.sha256(await request.body()).hexdigest()
+            impressao = seguranca.impressao_do_corpo(await request.body())
             escopo = f"{request.method} {request.url.path}"
             limite = time.monotonic() + _espera_maxima()
             while True:

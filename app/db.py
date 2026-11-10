@@ -45,6 +45,7 @@ def criar_engine(url: str | None = None):
     return create_engine(
         url or url_do_banco(),
         pool_pre_ping=True,
+        hide_parameters=True,  # erro do banco nunca imprime os valores enviados (dados de cliente) no log
         pool_size=_inteiro("DB_POOL", 5),
         max_overflow=_inteiro("DB_POOL_EXTRA", 5),
         pool_timeout=_inteiro("DB_ESPERA_CONEXAO", 10),

@@ -31,6 +31,14 @@ _ID_VALIDO = re.compile(r"[A-Za-z0-9._-]{1,64}")
 
 NOME_DO_LOGGER = "concept"
 
+_CONTROLE = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _limpo(valor) -> str:
+    """Uma linha de log é UMA linha: quebra de linha e outros caracteres de controle viram \\xNN. O caminho da URL
+    vem decodificado do servidor (um %0A chega como quebra de linha de verdade) e sem isto alguém forjaria linhas."""
+    return _CONTROLE.sub(lambda m: f"\\x{ord(m.group()):02x}", str(valor))
+
 
 def novo_id(recebido: str | None = None) -> str:
     if recebido and _ID_VALIDO.fullmatch(recebido):
@@ -54,8 +62,8 @@ class _Formato(logging.Formatter):
             if erro:
                 linha["erro"] = erro
             return json.dumps(linha, ensure_ascii=False, default=str)
-        extras = " ".join(f"{chave}={valor}" for chave, valor in campos.items())
-        texto = f"{quando} {registro.levelname:<7} {registro.name} id={id_da_requisicao.get()} {mensagem}"
+        extras = " ".join(f"{chave}={_limpo(valor)}" for chave, valor in campos.items())
+        texto = f"{quando} {registro.levelname:<7} {registro.name} id={id_da_requisicao.get()} {_limpo(mensagem)}"
         if extras:
             texto += f" {extras}"
         return f"{texto}\n{erro}" if erro else texto

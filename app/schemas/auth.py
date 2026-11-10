@@ -7,7 +7,7 @@ class Login(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     email: Texto
-    senha: str
+    senha: str = Field(min_length=1, max_length=256)
 
 
 class LoginGoogle(BaseModel):

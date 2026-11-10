@@ -3,14 +3,14 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.enums import TipoEvento
-from app.schemas.comum import Texto
+from app.schemas.comum import TextoLivre, texto
 
 
 class MudarSituacao(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    situacao: Texto
-    motivo: Texto | None = None  # obrigatório ao sair de Concluído
+    situacao: texto(40)
+    motivo: TextoLivre | None = None  # obrigatório ao sair de Concluído
 
 
 class EventoOut(BaseModel):

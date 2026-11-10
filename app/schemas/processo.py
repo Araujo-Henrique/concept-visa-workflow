@@ -9,10 +9,10 @@ Para cada tipo há:
 from datetime import date, datetime
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
 from app.enums import (SITUACOES, Consulado, DocsREN, Monitoramento, Orientacao, Rascunho, TipoProcesso)
-from app.schemas.comum import Texto, atualizacao
+from app.schemas.comum import MAX_PESSOAS_POR_PROCESSO, Texto, TextoLivre, atualizacao, texto
 from app.schemas.solicitante import SolicitanteOut
 
 
@@ -28,7 +28,8 @@ class NovoProcesso(BaseModel):
 
     cliente_id: int
     situacao: str
-    solicitantes_extras: list[Texto] = []  # além do titular, que é criado com o nome do cliente
+    # além do titular, que é criado com o nome do cliente
+    solicitantes_extras: list[Texto] = Field(default=[], max_length=MAX_PESSOAS_POR_PROCESSO - 1)
     processo_anterior_id: int | None = None  # nova tentativa de um processo anterior
 
     @model_validator(mode="after")
@@ -65,8 +66,8 @@ class OBTBase(BaseModel):
     orientacao: Orientacao = Orientacao.PENDENTE
     orientacao_data: date | None = None
     orientacao_por_id: int | None = None  # id de um usuário
-    codigo_rastreio: Texto | None = None
-    observacao: Texto | None = None
+    codigo_rastreio: texto(60) | None = None
+    observacao: TextoLivre | None = None
 
     @model_validator(mode="after")
     def _regras(self, info: ValidationInfo):
@@ -105,10 +106,10 @@ class RENBase(BaseModel):
     data_casv: date | None = None
     docs: DocsREN = DocsREN.PENDENTE
     status_rascunho: Rascunho = Rascunho.PENDENTE
-    endereco: Texto | None = None
-    codigo_rastreio: Texto | None = None
+    endereco: TextoLivre | None = None
+    codigo_rastreio: texto(60) | None = None
     despachado_em: date | None = None  # vazio = ainda falta despachar
-    observacao: Texto | None = None
+    observacao: TextoLivre | None = None
 
     @model_validator(mode="after")
     def _regras(self, info: ValidationInfo):
@@ -143,7 +144,7 @@ class PASSBase(BaseModel):
 
     data_pf: date | None = None
     prazo_pf: date | None = None
-    observacao: Texto | None = None
+    observacao: TextoLivre | None = None
 
 
 class PASSCreate(NovoProcesso, PASSBase):

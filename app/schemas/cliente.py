@@ -1,6 +1,6 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.schemas.comum import Texto, atualizacao
+from app.schemas.comum import Texto, atualizacao, texto
 
 
 class ClienteBase(BaseModel):
@@ -8,8 +8,8 @@ class ClienteBase(BaseModel):
 
     nome: Texto
     email: Texto | None = None
-    telefone: str | None = None
-    grupo: Texto | None = None
+    telefone: str | None = Field(default=None, max_length=40)  # como digitado; depois fica só com dígitos (até 20)
+    grupo: texto(100) | None = None
 
     @field_validator("telefone")
     @classmethod
@@ -20,6 +20,8 @@ class ClienteBase(BaseModel):
         digitos = "".join(c for c in valor if c.isdigit())
         if len(digitos) > 11 and digitos.startswith("55"):
             digitos = digitos[2:]
+        if len(digitos) > 20:
+            raise ValueError("O telefone tem dígitos demais (no máximo 20)")
         return digitos or None
 
 

@@ -2,7 +2,7 @@
 
 Cada teste prova uma promessa do módulo app/idempotencia.py (veja a lista no topo dele).
 """
-import hashlib
+import hashlib  # usado só para provar que a impressão NÃO é um SHA-256 simples
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 
-from app import db
+from app import db, seguranca
 from app.main import app
 from app.models import ChaveIdempotencia, Cliente, Evento
 from app.seguranca import criar_token
@@ -142,8 +142,10 @@ def test_a_senha_do_pedido_nao_e_guardada(client, sessao):
     _post(client, f"/usuarios/{alvo.id}/senha", {"senha": "nova-senha-bem-longa-9"})
     sessao.expire_all()
     linha = sessao.scalars(select(ChaveIdempotencia)).one()
-    # só o sha256 do corpo é guardado, nunca o pedido
+    # só a impressão (HMAC) do corpo é guardada, nunca o pedido, e nem um SHA-256 puro que se testaria offline
     assert "nova-senha" not in f"{linha.impressao} {linha.corpo} {linha.escopo}"
+    corpo = client.build_request("POST", f"/usuarios/{alvo.id}/senha", json={"senha": "nova-senha-bem-longa-9"}).content
+    assert linha.impressao != hashlib.sha256(corpo).hexdigest()
 
 
 # ---------------------------------------------------------------- pedidos simultâneos e reservas velhas
@@ -153,7 +155,7 @@ def _reserva(client, sessao, usuario, **campos):
     A impressão é calculada sobre os bytes reais que o httpx envia."""
     corpo = client.build_request("POST", "/clientes", json={"nome": "Ana Souza"}).content
     sessao.add(ChaveIdempotencia(usuario_id=usuario.id, chave=CHAVE, escopo="POST /clientes",
-                                 impressao=hashlib.sha256(corpo).hexdigest(), **campos))
+                                 impressao=seguranca.impressao_do_corpo(corpo), **campos))
     sessao.commit()
 
 

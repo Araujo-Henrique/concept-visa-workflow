@@ -6,6 +6,7 @@ from app.idempotencia import RotaIdempotente
 from app.deps import Sessao
 from app.models import FormularioDS160, Processo, Solicitante
 from app.routers.comum import obter_ou_404
+from app.schemas.comum import MAX_PESSOAS_POR_PROCESSO
 from app.schemas.solicitante import (FormularioNovo, FormularioOut, FormularioUpdate, SolicitanteNovo,
                                      SolicitanteOut, SolicitanteUpdate)
 
@@ -21,6 +22,8 @@ def listar(processo_id: int, sessao: Sessao):
 @router.post("/processos/{processo_id}/solicitantes", response_model=SolicitanteOut, status_code=201)
 def adicionar(processo_id: int, dados: SolicitanteNovo, sessao: Sessao):
     processo = obter_ou_404(sessao, Processo, processo_id, "Processo")
+    if len(processo.solicitantes) >= MAX_PESSOAS_POR_PROCESSO:
+        raise HTTPException(status_code=409, detail=f"Um processo pode ter no máximo {MAX_PESSOAS_POR_PROCESSO} pessoas")
     solicitante = Solicitante(processo_id=processo.id, nome=dados.nome)  # nunca titular: o titular já existe
     sessao.add(solicitante)
     sessao.commit()
