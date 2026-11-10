@@ -33,6 +33,11 @@ describe("destinoSeguro (para onde ir depois do login)", () => {
     ["//outro-site.com", "/"],
     ["/\\outro-site.com", "/"],
     ["/login?de=/x", "/"], // não volta para o próprio login
+    ["/\t/outro-site.com", "/"], // o navegador tira o tab e vira //outro-site.com
+    ["/\n/outro-site.com", "/"],
+    ["/\r/outro-site.com", "/"],
+    ["/ok\u0000", "/"],
+    ["/a\\b", "/"],
   ])("%s -> %s", (entrada, esperado) => {
     expect(destinoSeguro(entrada)).toBe(esperado);
   });

@@ -42,8 +42,16 @@ export function mensagemDeErro(status: number, detail: unknown): string {
 
 /** Destino depois do login: só caminhos internos (evita redirecionar para outro site). */
 export function destinoSeguro(destino: string | null | undefined): string {
-  if (!destino || !destino.startsWith("/") || destino.startsWith("//") || destino.startsWith("/\\"))
-    return "/";
+  if (!destino) return "/";
+  // O navegador remove tab/quebra de linha ao interpretar a URL ("/\t/evil.com" vira "//evil.com"):
+  // qualquer caractere de controle ou barra invertida invalida o destino.
+  if (/[\u0000-\u001f\u007f\\]/.test(destino)) return "/";
+  if (!destino.startsWith("/") || destino.startsWith("//")) return "/";
   if (destino.startsWith("/login")) return "/";
+  try {
+    if (new URL(destino, "http://app.invalid").origin !== "http://app.invalid") return "/";
+  } catch {
+    return "/";
+  }
   return destino;
 }
