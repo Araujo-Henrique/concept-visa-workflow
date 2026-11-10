@@ -277,7 +277,7 @@ class Auditoria(Base):
     `transacao`: linhas da mesma operação (ex.: um cliente apagado com seus processos) têm o mesmo número."""
     __tablename__ = "auditoria"
     __table_args__ = (
-        CheckConstraint("acao IN ('criou', 'editou', 'apagou')", name="acao"),
+        CheckConstraint("acao IN ('criou', 'editou', 'apagou', 'eliminou')", name="acao"),
         Index("ix_auditoria_tabela_registro", "tabela", "registro_id"),
         Index("ix_auditoria_processo_id", "processo_id"),
         Index("ix_auditoria_cliente_id", "cliente_id"),

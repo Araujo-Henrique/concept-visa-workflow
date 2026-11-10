@@ -76,7 +76,8 @@ Relações 1:N: a tabela do lado "muitos" guarda o id do lado "um" (`solicitante
   só prova quem a pessoa é; quem pode entrar é o cadastro (precisa existir e estar ativo, senão 403). Só o `admin`
   mantém senha, como acesso reserva. Detalhes e variáveis no README.
 - Idempotência (`Idempotency-Key` nas criações), logs com código de requisição, health check (`/saude`,
-  `/pronto`) e auditoria com antes e depois por trigger no banco: veja o README.
+  `/pronto`), auditoria com antes e depois por trigger no banco e, sobre ela, restauração de clientes excluídos
+  (o atendente pode excluir; o admin restaura) e eliminação definitiva manual: veja o README.
 
 ## Qualidade
 - **Backend:** pytest contra um PostgreSQL de verdade (`TEST_DATABASE_URL`, banco `_test` recriado pelas

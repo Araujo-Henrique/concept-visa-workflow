@@ -57,7 +57,8 @@ def _checar(usuario: Usuario, permissao: str) -> Usuario:
 def autorizar(request: Request, usuario: UsuarioAtual) -> Usuario:
     """Regra única: a permissão exigida vem do método HTTP (GET lê, DELETE apaga, o resto escreve).
     Aplicada a todos os routers em app/main.py, então uma rota nova já nasce protegida."""
-    return _checar(usuario, permissoes.exigida_pelo_metodo(request.method))
+    rota = getattr(request.scope.get("route"), "path", None)  # ex.: "/clientes/{cliente_id}"
+    return _checar(usuario, permissoes.exigida_pelo_metodo(request.method, rota))
 
 
 def exige(permissao: str):

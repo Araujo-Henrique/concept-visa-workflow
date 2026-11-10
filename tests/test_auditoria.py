@@ -101,7 +101,7 @@ def test_apagar_cliente_com_processos_registra_tudo_numa_transacao_so(client, se
 
     apagadas = _linhas(sessao, acao="apagou")
     assert {linha.tabela for linha in apagadas} == {
-        "clientes", "processos", "processo_obt", "solicitantes", "formularios_ds160"}
+        "clientes", "processos", "processo_obt", "solicitantes", "formularios_ds160", "eventos"}
     assert len({linha.transacao for linha in apagadas}) == 1  # uma operação: dá para mostrar como uma só
     assert all(linha.cliente_id == cliente["id"] for linha in apagadas)
     do_cliente = next(linha for linha in apagadas if linha.tabela == "clientes")
@@ -141,7 +141,7 @@ def test_cascata_feita_pelo_proprio_banco_tambem_e_registrada(client, sessao):
     sessao.execute(text("DELETE FROM processos WHERE id = :p"), {"p": processo["id"]})
     sessao.commit()
     apagadas = {linha.tabela: linha for linha in _linhas(sessao, acao="apagou")}
-    assert set(apagadas) == {"processos", "processo_obt", "solicitantes", "formularios_ds160"}
+    assert set(apagadas) == {"processos", "processo_obt", "solicitantes", "formularios_ds160", "eventos"}
     # mesmo com o pai já apagado, cada linha sabe de que processo e cliente era
     assert all(linha.processo_id == processo["id"] for linha in apagadas.values())
     assert all(linha.cliente_id == cliente["id"] for linha in apagadas.values())

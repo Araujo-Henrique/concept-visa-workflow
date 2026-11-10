@@ -52,15 +52,19 @@ def test_leitor_so_consulta(como, client):
     assert leitor.post("/processos-obt", json={"cliente_id": ana["id"], "situacao": "Pago"}).status_code == 403
 
 
-def test_atendente_cria_e_edita_mas_nao_apaga(como, client):
+def test_atendente_cria_edita_e_exclui_cliente_mas_nao_apaga_o_resto(como, client):
     atendente = como("atendente")
     ana = atendente.post("/clientes", json={"nome": "Ana Souza"}).json()
     assert atendente.patch(f"/clientes/{ana['id']}", json={"grupo": "Familia"}).status_code == 200
     processo = atendente.post("/processos-obt", json={"cliente_id": ana["id"], "situacao": "Processando"}).json()
     assert atendente.post(f"/processos/{processo['id']}/situacao", json={"situacao": "Pago"}).status_code == 200
     assert atendente.post(f"/processos/{processo['id']}/solicitantes", json={"nome": "Filho"}).status_code == 201
+    # processo, pessoa e DS-160 soltos seguem só do admin: só a exclusão de CLIENTE é restaurável pelo admin
     assert atendente.delete(f"/processos-obt/{processo['id']}").status_code == 403
-    assert atendente.delete(f"/clientes/{ana['id']}").status_code == 403
+    assert atendente.delete(f"/solicitantes/{processo['solicitantes'][0]['id']}").status_code == 403
+    # cliente com processo: precisa confirmar com_processos; com ela, o atendente pode (o admin restaura depois)
+    assert atendente.delete(f"/clientes/{ana['id']}").status_code == 409
+    assert atendente.delete(f"/clientes/{ana['id']}", params={"com_processos": "true"}).status_code == 204
 
 
 def test_admin_apaga(como):
@@ -259,11 +263,22 @@ def test_toda_rota_exceto_as_publicas_exige_autenticacao():
     assert sem_protecao == []
 
 
-def test_so_admin_apaga_cliente_mesmo_com_processos(como):
+def test_leitor_nao_exclui_cliente_mas_atendente_e_admin_sim(como):
     admin = como("admin")
     cliente = novo_cliente(admin, "Pediu Para Sair")
     novo_obt(admin, cliente["id"])
-    for perfil in ("atendente", "leitor"):
-        resposta = como(perfil).delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"})
-        assert resposta.status_code == 403
-    assert admin.delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"}).status_code == 204
+    assert como("leitor").delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"}).status_code == 403
+    assert como("atendente").delete(f"/clientes/{cliente['id']}", params={"com_processos": "true"}).status_code == 204
+    outro = novo_cliente(admin, "Outro Cliente")
+    assert admin.delete(f"/clientes/{outro['id']}").status_code == 204
+
+
+def test_permissao_de_excluir_cliente_nao_vaza_para_outras_rotas_de_delete():
+    # a exceção vale só para o DELETE do cliente; qualquer outro DELETE continua exigindo `apagar`
+    assert permissoes.exigida_pelo_metodo("DELETE", "/clientes/{cliente_id}") == "apagar_cliente"
+    for rota in ("/processos-obt/{processo_id}", "/solicitantes/{solicitante_id}",
+                 "/formularios-ds160/{formulario_id}", None):
+        assert permissoes.exigida_pelo_metodo("DELETE", rota) == "apagar"
+    assert permissoes.exigida_pelo_metodo("PATCH", "/clientes/{cliente_id}") == "escrever"  # só DELETE
+    assert permissoes.pode("atendente", "apagar_cliente") and not permissoes.pode("atendente", "apagar")
+    assert not permissoes.pode("leitor", "apagar_cliente")

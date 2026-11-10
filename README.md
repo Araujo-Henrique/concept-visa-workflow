@@ -200,16 +200,18 @@ então uma rota nova já nasce protegida (há um teste que percorre todas as rot
 | Perfil | Pode |
 |---|---|
 | `leitor` | consultar (GET) |
-| `atendente` | consultar, criar e editar (POST, PATCH), incluindo mudar a situação de um processo |
-| `admin` | tudo: apagar (DELETE) e administrar usuários |
+| `atendente` | consultar, criar e editar (POST, PATCH), mudar a situação de um processo e **excluir cliente** |
+| `admin` | tudo: apagar o resto (DELETE), restaurar e eliminar clientes e administrar usuários |
 
 - **401** = não está logado (sem token ou token inválido). **403** = está logado, mas o perfil não permite.
 - Perfil desconhecido não pode nada (nega por padrão).
 - Mudanças de perfil, `ativo`, nome e senha de um usuário ficam registradas (quem fez, o que mudou, quando),
   sem nunca guardar a senha.
 - A empresa nunca fica sem um administrador ativo: a API recusa (409) rebaixar ou desativar o último.
-- Excluir cliente (`DELETE /clientes/{id}`, só admin): com processos, a API recusa (409) a menos que venha
-  `com_processos=true`; aí apaga junto processos, solicitantes, formulários e eventos. É definitivo.
+- **Excluir cliente** (`DELETE /clientes/{id}`, admin e atendente): com processos, a API recusa (409) a menos que
+  venha `com_processos=true`; aí sai junto processos, pessoas, DS-160 e eventos. **Não é perda de dados**: a cópia
+  fica na auditoria e o admin restaura. É por isso que o atendente pode. Excluir processo, pessoa ou DS-160
+  soltos continua só do admin (a restauração cobre o cliente inteiro).
 - Só `admin` tem senha; os outros perfis entram com o Google, pelo e-mail cadastrado (veja "Autenticação").
 - **Auditoria de clientes e processos** (só admin vê): toda mudança em clientes, processos (e os detalhes de
   cada tipo), pessoas e DS-160 fica registrada **pelo próprio PostgreSQL** (trigger, migration 0011), com
@@ -224,6 +226,16 @@ então uma rota nova já nasce protegida (há um teste que percorre todas as rot
   - Nada é apagado por prazo: clientes antigos voltam e o histórico é útil. Os dados pessoais ficam
     guardados; por isso só admin lê.
   - Na tela: "Histórico de alterações" nas páginas de cliente e de processo, só para admin.
+- **Clientes excluídos** (só admin; `GET /auditoria/apagados`, tela em Clientes → "Clientes excluídos"):
+  - **Restaurar** (`POST /auditoria/apagados/{id}/restaurar`): recoloca cliente, processos, pessoas, DS-160 e
+    histórico de situações, com os mesmos números e datas, e religa as "tentativas anteriores". Tudo ou nada: se o
+    nome do cliente ou um código de DS-160 já foi usado por outro cadastro, 409 e nada muda. Na auditoria fica
+    marcado como restauração (uma frase só no histórico).
+  - **Eliminar de vez** (`POST /auditoria/apagados/{id}/eliminar`): sempre manual, só do admin, só de quem já foi
+    excluído (dois passos de propósito), repetindo o nome e dando o motivo. Apaga o cliente **também da auditoria**
+    (a função `eliminar_cliente()` do banco é a única que consegue; `DELETE` comum na auditoria segue recusado) e
+    esvazia o cache de idempotência. Fica só uma lápide: número, quem, quando e motivo, sem dado pessoal.
+    **Sem volta.** Backups antigos ainda guardam o dado até rotacionarem (defina o prazo no Projeto 5).
 
 ## Importação do banco do Projeto 1
 `app/importacao/projeto1.py` migra clientes e processos do Concept Client Registry para este esquema

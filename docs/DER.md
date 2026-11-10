@@ -52,12 +52,12 @@ erDiagram
         int registro_id "sem FK: o rastro sobrevive a remocao"
         int processo_id "contexto, mesmo se ja apagado"
         int cliente_id "contexto, mesmo se ja apagado"
-        string acao "criou, editou, apagou"
+        string acao "criou, editou, apagou, eliminou"
         jsonb antes
         jsonb depois
         int usuario_id "sem FK"
         string requisicao "o mesmo codigo do log"
-        string origem "api, seed, importacao, banco"
+        string origem "api, seed, importacao, restauracao, banco"
         bigint transacao
         datetime criado_em
     }
@@ -165,5 +165,7 @@ e resumidos num resultado geral) e a orientação. A rota `GET /painel` lê dela
   solicitantes é contada, não armazenada.
 - **Auditoria sem chave estrangeira.** `auditoria` é preenchida por trigger em cada tabela auditada e não
   aponta para elas: quando um cliente é apagado, o histórico dele continua lá (`cliente_id` e `processo_id`
-  guardam o contexto). Só aceita INSERT. Fica fora do diagrama de relações de propósito.
+  guardam o contexto). Só aceita INSERT, salvo a função `eliminar_cliente()` (eliminação definitiva, manual e só
+  do admin), que apaga a cópia de um cliente e deixa uma lápide (`acao = 'eliminou'`) sem dado pessoal. Também
+  audita `eventos`, para a restauração trazer a linha do tempo. Fica fora do diagrama de relações de propósito.
 - **Auto-relação.** `processos.processo_anterior_id` liga uma nova tentativa à negativa anterior do mesmo cliente.

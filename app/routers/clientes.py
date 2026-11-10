@@ -2,6 +2,7 @@ import re
 
 from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.idempotencia import RotaIdempotente
 from app.deps import Sessao
@@ -78,11 +79,14 @@ def remover(cliente_id: int, sessao: Sessao,
             f"O cliente tem {len(processos)} processo(s). Para apagar junto, confirme com com_processos=true"))
     ids = [p.id for p in processos]
     if ids:
+        # Desfazer os vínculos não é uma edição do processo: `atualizado_em` não pode mudar (a data de processos
+        # de OUTROS clientes não é mexida por esta exclusão, e a cópia da auditoria guarda a data verdadeira).
         # outra tentativa que aponte para um destes processos perde só a referência, não é apagada
         sessao.execute(update(Processo).where(Processo.processo_anterior_id.in_(ids), Processo.id.not_in(ids))
-                       .values(processo_anterior_id=None))
+                       .values(processo_anterior_id=None, atualizado_em=Processo.atualizado_em))
         for processo in processos:
             processo.processo_anterior_id = None
+            flag_modified(processo, "atualizado_em")  # grava a data como estava, em vez do onupdate (agora)
         sessao.flush()
         for processo in processos:
             sessao.delete(processo)  # solicitantes, formulários e eventos saem junto (cascade)
