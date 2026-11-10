@@ -22,7 +22,7 @@ describe("Login: Google primeiro, senha só como reserva do administrador", () =
     );
     expect(screen.queryByLabelText("Senha")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("E-mail")).not.toBeInTheDocument();
-    expect(screen.getByText(/Quem não estiver cadastrado não entra/)).toBeInTheDocument();
+    expect(screen.getByText(/Solicite a liberação de acesso/)).toBeInTheDocument();
   });
 
   it("guarda para onde a pessoa ia, para voltar depois do Google", () => {
