@@ -1,0 +1,88 @@
+# Produção numa VPS: Caddy (HTTPS) -> web (Next) -> api (FastAPI) -> db (PostgreSQL).
+# Só o Caddy publica portas (80 e 443). API e banco ficam numa rede interna, sem acesso de fora.
+#
+# Uso (sempre com o arquivo de variáveis de produção):
+#   docker compose --env-file .env.prod up -d --build
+name: concept
+
+services:
+  db:
+    image: postgres:18   # a mesma versão principal do banco de desenvolvimento (restaurar em versão menor falha)
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env.prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env.prod}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env.prod}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [interna]
+    logging: &logs
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env.prod}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
+      # a API só acredita no X-Cliente-IP vindo do contêiner web (IP fixo, definido na rede abaixo)
+      API_PROXIES_CONFIAVEIS: 172.30.0.10
+      LOG_FORMATO: json
+      LOG_ARQUIVO: ""   # o Docker guarda e rotaciona a saída (docker compose logs api)
+    networks: [interna]
+    logging: *logs
+
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      api: {condition: service_healthy}
+    environment:
+      API_URL: http://api:8000
+      APP_URL: https://${DOMINIO:?defina DOMINIO no .env.prod}
+    networks:
+      interna:
+        ipv4_address: 172.30.0.10
+    logging: *logs
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMINIO: ${DOMINIO}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data     # guarda os certificados: não perder, senão pede de novo e esbarra no limite do Let's Encrypt
+      - caddy_config:/config
+    networks: [interna]
+    logging: *logs
+
+networks:
+  interna:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  pgdata:
+  caddy_dados:
+  caddy_config:

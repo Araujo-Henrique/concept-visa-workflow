@@ -23,6 +23,7 @@ export const CABECALHOS_DE_SEGURANCA = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone", // gera .next/standalone: a imagem Docker leva só o necessário para rodar
   poweredByHeader: false, // não anuncia que é Next.js (e a versão) para quem procura alvo
   headers: async () => [{ source: "/:path*", headers: CABECALHOS_DE_SEGURANCA }],
   cacheComponents: true,

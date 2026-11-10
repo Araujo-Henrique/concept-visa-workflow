@@ -1,0 +1,24 @@
+# API (FastAPI). Contexto de build: a raiz do repositório.
+FROM python:3.14-slim
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1
+
+# usuário comum: se alguém invadir a API, não é root dentro do contêiner
+RUN useradd --system --uid 10001 --no-create-home app
+WORKDIR /srv
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY alembic.ini .
+COPY migrations migrations
+COPY app app
+COPY scripts scripts
+USER app
+
+EXPOSE 8000
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+  CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/saude', timeout=3).status == 200 else 1)"
+
+# aplica as migrations pendentes e sobe (uma única API: não há corrida entre migrations)
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]

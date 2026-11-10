@@ -1,0 +1,8 @@
+# Caddy: porta 80/443 do servidor, HTTPS automático (Let's Encrypt) e repasse para o Next.
+# {$DOMINIO} vem do .env.prod (ex.: vistos.suaempresa.com.br; o DNS precisa apontar para o IP da VPS).
+{$DOMINIO} {
+	encode zstd gzip
+
+	# O Caddy escreve o X-Forwarded-For/Proto/Host com o que ele viu na conexão (ignora o que o cliente mandou).
+	reverse_proxy web:3000
+}

@@ -15,3 +15,8 @@ usuarios*.csv
 excecoes*.csv
 
 logs/
+
+# produção: segredos e dumps do banco (dados de clientes) nunca vão para o Git
+.env.prod
+*.dump
+backups/
