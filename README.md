@@ -118,6 +118,7 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
 - Falhas de login por senha (senha errada, e-mail inexistente, usuário inativo, sem senha ou que não é admin) dão a
   mesma resposta 401. Quem não vai poder entrar nem chega a ter a senha conferida.
 - `JWT_SECRET` (mínimo 32 caracteres, aleatório, com variedade e sem valores de exemplo) vem do `.env`; a API recusa subir sem um segredo válido.
+- Trocar ou redefinir a senha, desativar ou rebaixar um admin encerra as sessões que ele já tinha (`usuarios.token_version`, conferido a cada requisição). Ao trocar a própria senha, a API devolve um token novo e a sessão atual continua.
 - Processos e eventos registram quem os criou ou alterou.
 
 ### Login com o Google (OpenID Connect, código de autorização + PKCE)
@@ -160,7 +161,7 @@ Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). O
 | Requisições por IP, em qualquer rota (um escritório inteiro pode ter um IP só) | 600 por minuto | `LIMITE_REQUISICOES_POR_MINUTO` |
 | Tamanho do corpo da requisição | 1024 KB | `LIMITE_CORPO_KB` |
 | Tempo máximo de uma consulta no Postgres (`statement_timeout`) | 15 s | `DB_TEMPO_MAXIMO_CONSULTA_MS` |
-| Conexões com o banco (pool + extras) e espera por uma livre | 5 + 5, 10 s | `DB_POOL`, `DB_POOL_EXTRA`, `DB_ESPERA_CONEXAO` |
+| Conexões com o banco (pool + extras) e espera por uma livre | 5 + 5, 10 s | `DB_POOL`, `DB_POOL_EXTRA`, `DB_ESPERA_CONEXAO` (e `DB_TEMPO_CONEXAO`: 5 s para abrir a conexão) |
 | Itens por página nas listagens | 200 | (fixo nas rotas) |
 
 - Passou do limite: **429** com `Retry-After` e "Muitas tentativas. Tente de novo em N minutos". Corpo grande: 413.

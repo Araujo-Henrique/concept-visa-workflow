@@ -49,7 +49,8 @@ def criar_engine(url: str | None = None):
         pool_size=_inteiro("DB_POOL", 5),
         max_overflow=_inteiro("DB_POOL_EXTRA", 5),
         pool_timeout=_inteiro("DB_ESPERA_CONEXAO", 10),
-        connect_args={"options": f"-c statement_timeout={tempo_maximo}"},
+        connect_args={"options": f"-c statement_timeout={tempo_maximo}",
+                      "connect_timeout": _inteiro("DB_TEMPO_CONEXAO", 5)},  # banco fora do ar: falha em 5 s, não trava
     )
 
 

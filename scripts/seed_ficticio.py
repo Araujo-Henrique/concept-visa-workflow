@@ -24,6 +24,8 @@ def main() -> int:
                     help="obrigatório: confirma que este banco é de testes e que os dados criados são inventados")
     ap.add_argument("--sem-senha", action="store_true", help="cria os usuários demo sem senha")
     ap.add_argument("--clientes", type=int, default=36, help="quantidade de clientes (padrão: 36)")
+    ap.add_argument("--aceito-usuarios-existentes", action="store_true",
+                    help="deixa rodar mesmo com usuários que não são do seed (ex.: o seu admin de desenvolvimento)")
     args = ap.parse_args()
     if not args.confirmo_dados_ficticios:
         print("Recusado: este comando cria dados inventados. Rode de novo com --confirmo-dados-ficticios "
@@ -42,7 +44,8 @@ def main() -> int:
             return 1
     try:
         with db.Session() as sessao:
-            resumo = semear(sessao, senha, quantidade=args.clientes)
+            resumo = semear(sessao, senha, quantidade=args.clientes,
+                            aceitar_usuarios_existentes=args.aceito_usuarios_existentes)
             sessao.commit()
     except (RuntimeError, ErroDeRegra) as erro:
         print(f"Recusado: {getattr(erro, 'mensagem', erro)}")

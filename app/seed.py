@@ -153,7 +153,7 @@ class _Gerador:
 
 
 def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente: int = 42,
-           hoje: date | None = None) -> dict[str, int]:
+           hoje: date | None = None, aceitar_usuarios_existentes: bool = False) -> dict[str, int]:
     """Cria usuários demo, clientes e processos fictícios. O commit é de quem chama.
 
     `senha` vale só para o usuário demo admin (só admin entra com senha; os outros perfis entram com o Google).
@@ -162,6 +162,12 @@ def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente:
     if sessao.scalar(select(func.count()).select_from(Cliente)):
         raise RuntimeError("O banco já tem clientes: o seed só roda num banco sem clientes, "
                            "para nunca misturar dados fictícios com dados reais.")
+    if not aceitar_usuarios_existentes:
+        demo = {email.lower() for _, email, _, _ in USUARIOS_DEMO}
+        outros = [e for e in sessao.scalars(select(Usuario.email)) if e.lower() not in demo]
+        if outros:
+            raise RuntimeError(f"O banco já tem {len(outros)} usuário(s) que não são do seed: provavelmente é um banco "
+                               "de verdade. Se é só o seu administrador de desenvolvimento, use --aceito-usuarios-existentes.")
     auditoria.identificar(sessao, origem="seed")  # na auditoria, o que o seed criou fica marcado como seed
     rng = random.Random(semente)
 
