@@ -10,7 +10,8 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.exc import TimeoutError as SemConexaoLivre
 
 from app import db, deps, limites, logs
-from app.routers import auth, clientes, painel, processos, referencias, saude, solicitantes, usuarios, workflow
+from app.routers import (auditoria, auth, clientes, painel, processos, referencias, saude, solicitantes, usuarios,
+                         workflow)
 
 
 @asynccontextmanager
@@ -91,6 +92,7 @@ protegidas = [Depends(deps.autorizar)]
 for roteador in (clientes.router, processos.router_obt, processos.router_ren, processos.router_pass,
                  solicitantes.router, workflow.router, painel.router, referencias.router):
     app.include_router(roteador, dependencies=protegidas)
+app.include_router(auditoria.router)  # auditoria: exige `administrar` (só admin)
 app.include_router(usuarios.router)  # administração: exige a permissão `administrar` (só admin)
 
 

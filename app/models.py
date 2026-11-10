@@ -5,8 +5,9 @@ Cada classe é uma tabela. `relationship` não cria coluna: só deixa navegar en
 """
 from datetime import date, datetime
 
-from sqlalchemy import (Boolean, CheckConstraint, Computed, Date, DateTime, Enum, ForeignKey,
-                        ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint, func, text)
+from sqlalchemy import (BigInteger, Boolean, CheckConstraint, Computed, Date, DateTime, Enum, ForeignKey,
+                        ForeignKeyConstraint, Identity, Index, Integer, String, Text, UniqueConstraint, func, text)
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -264,4 +265,34 @@ class ChaveIdempotencia(Base):
     impressao: Mapped[str] = mapped_column(String(64))  # sha256 do corpo: mesma chave com dados diferentes é erro
     status: Mapped[int | None] = mapped_column(Integer)
     corpo: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Auditoria(Base):
+    """Toda mudança em clientes, processos (e detalhes), solicitantes e DS-160. Quem grava é o trigger do banco
+    (migration 0011), nunca a aplicação: aqui o modelo só serve para LER. A tabela só aceita INSERT.
+
+    `antes`/`depois`: o registro inteiro ao criar/apagar; só os campos alterados ao editar.
+    `processo_id`/`cliente_id`: a que processo/cliente a linha pertence, mesmo depois de apagados.
+    `transacao`: linhas da mesma operação (ex.: um cliente apagado com seus processos) têm o mesmo número."""
+    __tablename__ = "auditoria"
+    __table_args__ = (
+        CheckConstraint("acao IN ('criou', 'editou', 'apagou')", name="acao"),
+        Index("ix_auditoria_tabela_registro", "tabela", "registro_id"),
+        Index("ix_auditoria_processo_id", "processo_id"),
+        Index("ix_auditoria_cliente_id", "cliente_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    tabela: Mapped[str] = mapped_column(String(40))
+    registro_id: Mapped[int] = mapped_column(Integer)
+    processo_id: Mapped[int | None] = mapped_column(Integer)
+    cliente_id: Mapped[int | None] = mapped_column(Integer)
+    acao: Mapped[str] = mapped_column(String(10))
+    antes: Mapped[dict | None] = mapped_column(JSONB)
+    depois: Mapped[dict | None] = mapped_column(JSONB)
+    usuario_id: Mapped[int | None] = mapped_column(Integer)  # sem FK: a auditoria nunca trava outra operação
+    requisicao: Mapped[str | None] = mapped_column(String(64))  # o mesmo código do log (X-Request-ID)
+    origem: Mapped[str] = mapped_column(String(20))
+    transacao: Mapped[int] = mapped_column(BigInteger, server_default=text("txid_current()"))
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

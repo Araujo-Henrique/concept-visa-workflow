@@ -23,6 +23,7 @@ erDiagram
     processos ||--|{ solicitantes : "agrupa"
     solicitantes ||--o{ formularios_ds160 : "preenche"
     processos ||--|{ eventos : "historico"
+    usuarios ||--o{ chaves_idempotencia : "envia"
 
     perfis {
         int id PK
@@ -43,6 +44,31 @@ erDiagram
         string campo "perfil, ativo, nome, senha"
         text valor_anterior
         text valor_novo
+        datetime criado_em
+    }
+    auditoria {
+        bigint id PK
+        string tabela "clientes, processos, processo_obt/ren/pass, solicitantes, formularios_ds160"
+        int registro_id "sem FK: o rastro sobrevive a remocao"
+        int processo_id "contexto, mesmo se ja apagado"
+        int cliente_id "contexto, mesmo se ja apagado"
+        string acao "criou, editou, apagou"
+        jsonb antes
+        jsonb depois
+        int usuario_id "sem FK"
+        string requisicao "o mesmo codigo do log"
+        string origem "api, seed, importacao, banco"
+        bigint transacao
+        datetime criado_em
+    }
+    chaves_idempotencia {
+        int id PK
+        int usuario_id FK
+        string chave "unica por usuario"
+        string escopo "metodo e rota"
+        string impressao "sha256 do corpo"
+        int status "nulo = em andamento"
+        text corpo "resposta guardada"
         datetime criado_em
     }
     clientes {
@@ -137,4 +163,7 @@ e resumidos num resultado geral) e a orientação. A rota `GET /painel` lê dela
   quais situações existem para cada tipo (`Pix` só em passaporte, `Entrevista` só em renovação).
 - **1:N.** A tabela do lado "muitos" guarda o id do lado "um" (`solicitantes.processo_id`). A quantidade de
   solicitantes é contada, não armazenada.
+- **Auditoria sem chave estrangeira.** `auditoria` é preenchida por trigger em cada tabela auditada e não
+  aponta para elas: quando um cliente é apagado, o histórico dele continua lá (`cliente_id` e `processo_id`
+  guardam o contexto). Só aceita INSERT. Fica fora do diagrama de relações de propósito.
 - **Auto-relação.** `processos.processo_anterior_id` liga uma nova tentativa à negativa anterior do mesmo cliente.

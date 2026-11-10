@@ -42,6 +42,7 @@ from psycopg.rows import dict_row
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import auditoria
 from app.enums import (Consulado, DocsREN, Monitoramento, Orientacao, Rascunho, Resultado, StatusDS,
                        TipoEvento)
 from app.models import (Cliente, Evento, FormularioDS160, Perfil, ProcessoOBT, ProcessoPASS, ProcessoREN,
@@ -261,6 +262,7 @@ def _donos_dos_codigos(obt: list[dict], ren: list[dict]) -> dict[str, tuple[str,
 def importar(conexao_origem: Connection, sessao: Session, usuarios_csv: dict | None = None) -> Relatorio:
     relatorio = Relatorio()
     origem = Origem(conexao_origem)
+    auditoria.identificar(sessao, origem="importacao")  # na auditoria: veio da importação, não de uma pessoa
 
     if sessao.scalar(select(func.count()).select_from(Cliente)) or \
             sessao.scalar(select(func.count()).select_from(ProcessoOBT)):

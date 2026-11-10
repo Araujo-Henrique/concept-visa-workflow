@@ -171,6 +171,19 @@ então uma rota nova já nasce protegida (há um teste que percorre todas as rot
 - A empresa nunca fica sem um administrador ativo: a API recusa (409) rebaixar ou desativar o último.
 - Excluir cliente (`DELETE /clientes/{id}`, só admin): com processos, a API recusa (409) a menos que venha
   `com_processos=true`; aí apaga junto processos, solicitantes, formulários e eventos. É definitivo.
+- **Auditoria de clientes e processos** (só admin vê): toda mudança em clientes, processos (e os detalhes de
+  cada tipo), pessoas e DS-160 fica registrada **pelo próprio PostgreSQL** (trigger, migration 0011), com
+  antes e depois (na edição, só os campos que mudaram), quem fez, o código da requisição (o mesmo do log) e a
+  origem (`api`, `seed`, `importacao` ou `banco` para edição direta no psql, sem usuário). Pega também a
+  cascata do DELETE e UPDATEs em massa. A API conta ao banco quem é o usuário no começo de cada transação
+  (`set_config(..., true)`, que não vaza para a próxima requisição da mesma conexão).
+  - O rastro sobrevive à remoção (sem FK): `GET /auditoria?cliente_id=` funciona com o cliente já apagado,
+    e `?tabela=clientes&acao=apagou` lista os removidos com os dados que tinham.
+  - A tabela só aceita INSERT: UPDATE e DELETE nela dão erro. (Um superusuário do banco ainda pode desligar o
+    trigger: isso protege contra a aplicação e contra engano, não contra o dono do servidor.)
+  - Nada é apagado por prazo: clientes antigos voltam e o histórico é útil. Os dados pessoais ficam
+    guardados; por isso só admin lê.
+  - Na tela: "Histórico de alterações" nas páginas de cliente e de processo, só para admin.
 - "Entrar com Google" fica como melhoria futura: será uma segunda forma de entrar, ligada ao mesmo usuário
   pelo e-mail, sem alterar o que existe.
 

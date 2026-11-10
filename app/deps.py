@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session as SessaoORM
 
-from app import db, permissoes, seguranca
+from app import auditoria, db, permissoes, seguranca
 from app.models import Usuario
 
 
@@ -40,6 +40,7 @@ def usuario_atual(request: Request, sessao: Sessao,
     if not usuario.ativo:
         raise HTTPException(status_code=403, detail="Acesso desativado")
     request.state.usuario_id = usuario.id  # o log da requisição diz quem foi
+    auditoria.identificar(sessao, usuario_id=usuario.id)  # e a auditoria do banco também
     return usuario
 
 

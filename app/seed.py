@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import auditoria
 from app.enums import (SITUACOES, Consulado, DocsREN, Orientacao, Rascunho, Resultado, StatusDS, TipoEvento,
                        TipoProcesso)
 from app.models import (Cliente, Evento, FormularioDS160, Processo, ProcessoOBT, ProcessoPASS, ProcessoREN,
@@ -160,6 +161,7 @@ def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente:
     if sessao.scalar(select(func.count()).select_from(Cliente)):
         raise RuntimeError("O banco já tem clientes: o seed só roda num banco sem clientes, "
                            "para nunca misturar dados fictícios com dados reais.")
+    auditoria.identificar(sessao, origem="seed")  # na auditoria, o que o seed criou fica marcado como seed
     rng = random.Random(semente)
 
     usuarios: dict[str, Usuario] = {}
