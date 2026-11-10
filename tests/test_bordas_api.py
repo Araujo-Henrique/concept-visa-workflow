@@ -132,7 +132,7 @@ def test_trocar_para_perfil_inexistente_da_422_e_nao_muda_nada(client, como):  #
 
 
 def test_admin_redefine_senha_de_outro_usuario_e_a_regra_de_tamanho_vale(client, como, client_anonimo):  # noqa: F811
-    alvo = como("leitor")
+    alvo = como("admin")
     url = f"/usuarios/{alvo.usuario.id}/senha"
     assert client.post(url, json={"senha": "curta"}).status_code == 422
     assert client.post(url, json={"senha": "outra-senha-bem-longa-9"}).status_code == 204

@@ -151,7 +151,7 @@ def test_regras_de_criacao_de_usuario(sessao):
 
 
 def test_definir_senha_troca_o_hash_e_permite_entrar(client_anonimo, sessao):
-    criar_usuario(sessao, "Importado", "importado@exemplo.com", "atendente", senha=None)  # veio da importação
+    criar_usuario(sessao, "Importado", "importado@exemplo.com", "admin", senha=None)  # veio da importação
     sessao.commit()
     assert login(client_anonimo, "importado@exemplo.com", "nova-senha-segura-1").status_code == 401
     definir_senha(sessao, "importado@exemplo.com", "nova-senha-segura-1")

@@ -10,3 +10,4 @@ PyJWT
 pytest
 pytest-cov
 httpx2
+cryptography

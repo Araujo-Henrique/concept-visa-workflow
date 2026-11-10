@@ -5,7 +5,9 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 
 ## Funcionalidades (fase atual)
 
-- Login com o e-mail e a senha da API. O token fica num cookie `httpOnly`: o navegador nunca o lê.
+- Login com o **Google** (todos os perfis; só entra quem tem o e-mail cadastrado em Usuários e ativo) ou, como
+  reserva do administrador, com e-mail e senha (o acesso por senha fica recolhido na tela). O token fica num
+  cookie `httpOnly`: o navegador nunca o lê. O fluxo está em `app/api/auth/google` e `lib/google-oauth.ts`.
 - Rotas protegidas: sem sessão, a pessoa vai ao login e volta para onde ia depois de entrar.
 - Sessão deslizante: enquanto a pessoa usa o sistema, o token é renovado (no máximo a cada 5 minutos, via
   `POST /auth/renovar`). Parada, aparece um aviso 2 minutos antes de vencer ("Continuar conectado"); vencida,
@@ -35,10 +37,11 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - Identidade Concept Vistos: logo em vetor, azul `#1d9d9d`, tinta `#050510`, papel `#f5f5f5`, tema claro e
   escuro, animações decorativas (avião, pins, carimbo) que respeitam "reduzir movimento".
 
-- **Usuários** (só admin): a equipe como crachás de tripulação; criar (com gerador de senha e copiar), editar
-  nome e perfil, redefinir senha, desativar ou reativar o acesso (ninguém se desativa e a API sempre mantém um
-  admin ativo) e o histórico de cada usuário (a senha nunca aparece).
-- **Minha conta** (todos): o próprio crachá e a troca de senha (pede a atual).
+- **Usuários** (só admin): a equipe como crachás de tripulação; criar (só o administrador tem senha, com gerador
+  e copiar; os outros perfis entram com o Google e não pedem senha), editar nome e perfil, redefinir senha (só de
+  administrador), desativar ou reativar o acesso (ninguém se desativa e a API sempre mantém um admin ativo) e o
+  histórico de cada usuário (a senha nunca aparece).
+- **Minha conta** (todos): o próprio crachá; o administrador também troca a senha (pede a atual).
 
 ## Como rodar
 
@@ -62,6 +65,10 @@ npm run publicar                          # build + API + front de produção em
 ngrok http 3000                           # em outro terminal: o link público é a linha "Forwarding"
 ```
 
+**Login com o Google no ngrok:** cadastre `https://SEU-DOMINIO.ngrok-free.dev/api/auth/google/callback` em Google
+Cloud → Clientes → "URIs de redirecionamento autorizados" (o domínio é o da linha "Forwarding"; é fixo no plano
+gratuito). Abra o site pelo link do ngrok (ou por `http://localhost:3000`, nunca `127.0.0.1`).
+
 `Ctrl+C` no ngrok derruba o link; no `publicar`, desliga a API e o front. Rode de novo o `publicar` depois de
 cada alteração (ele refaz a build). Não use `npm run dev` para mostrar: é mais lento e expõe detalhes de erro.
 
@@ -74,9 +81,10 @@ npm run test:e2e   # sobe o next dev e testa a porta de entrada de verdade
 
 ## Variáveis de ambiente
 
-| Variável  | Para quê                                                                          |
-| --------- | --------------------------------------------------------------------------------- |
-| `API_URL` | Endereço da API Python (ex.: `http://127.0.0.1:8000`). Só o servidor do Next usa. |
+| Variável  | Para quê                                                                                                               |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `API_URL` | Endereço da API Python (ex.: `http://127.0.0.1:8000`). Só o servidor do Next usa.                                      |
+| `APP_URL` | Opcional: endereço público do site (ex.: `https://vistos.concept.com.br`). Sem ele, vale o que o ngrok/nginx informam. |
 
 ## Estrutura
 

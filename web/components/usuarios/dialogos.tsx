@@ -19,6 +19,7 @@ import {
   descreverAuditoria,
   DESCRICAO_DO_PERFIL,
   PERFIS,
+  temSenha,
   validarSenha,
   validarUsuarioNovo,
   type Erros,
@@ -83,6 +84,34 @@ function EscolhaDePerfil({ valor, aoMudar }: { valor: Perfil; aoMudar: (p: Perfi
   );
 }
 
+/** Diz como a pessoa vai entrar, para o admin não esperar uma senha que não existe (nem esquecer de definir uma). */
+function AvisoDeAcesso({
+  novo,
+  perfil,
+  perfilAtual,
+}: {
+  novo: boolean;
+  perfil: Perfil;
+  perfilAtual?: Perfil;
+}) {
+  let texto: string | null = null;
+  if (novo) {
+    texto = temSenha(perfil)
+      ? "Administrador entra com o Google ou com a senha abaixo."
+      : "Entra só com o Google, usando este e-mail. Não precisa de senha.";
+  } else if (perfilAtual && !temSenha(perfilAtual) && temSenha(perfil)) {
+    texto = "Para este administrador entrar também com senha, use “Redefinir senha” depois de salvar.";
+  } else if (perfilAtual && temSenha(perfilAtual) && !temSenha(perfil)) {
+    texto = "A senha dele será apagada: passa a entrar só com o Google.";
+  }
+  if (!texto) return null;
+  return (
+    <p role="note" className="rounded-lg bg-marca-suave px-3 py-2 text-sm text-accent-foreground">
+      {texto}
+    </p>
+  );
+}
+
 // ---------------------------------------------------------------- novo / editar
 
 export function DialogoUsuario({
@@ -103,7 +132,7 @@ export function DialogoUsuario({
           <DialogDescription>
             {usuario
               ? "O e-mail não muda: ele é a identidade de quem entra."
-              : "Gere uma senha e mande para a pessoa. Ela pode trocar depois em Minha conta."}
+              : "A pessoa entra com o Google, usando este e-mail. Só administradores têm senha."}
           </DialogDescription>
         </DialogHeader>
         {aberto && (
@@ -139,17 +168,26 @@ function FormUsuario({ usuario, aoFechar }: { usuario?: Usuario | null; aoFechar
         } else setErroGeral(r.erro);
       });
     }
-    const encontrados = validarUsuarioNovo({ nome, email, senha });
+    const comSenha = temSenha(perfil);
+    const encontrados = validarUsuarioNovo({ nome, email, senha }, comSenha);
     setErros(encontrados);
     if (Object.keys(encontrados).length) return;
     iniciar(async () => {
       const r = await criarUsuario(
-        { nome: nome.trim(), email: email.trim().toLowerCase(), perfil, senha },
+        {
+          nome: nome.trim(),
+          email: email.trim().toLowerCase(),
+          perfil,
+          // só o administrador tem senha; os outros entram com o Google
+          ...(comSenha ? { senha } : {}),
+        },
         chave.atual(),
       );
       if (r.ok) {
         chave.renovar();
-        toast.success("Usuário criado", { description: `${r.dados.nome} já pode entrar.` });
+        toast.success("Usuário criado", {
+          description: `${r.dados.nome} já pode entrar${comSenha ? "" : " com o Google"}.`,
+        });
         aoFechar();
       } else setErroGeral(r.erro);
     });
@@ -169,9 +207,10 @@ function FormUsuario({ usuario, aoFechar }: { usuario?: Usuario | null; aoFechar
         <CampoTexto rotulo="E-mail" tipo="email" valor={email} aoMudar={setEmail} erro={erros.email} />
       )}
       <EscolhaDePerfil valor={perfil} aoMudar={setPerfil} />
-      {!usuario && (
+      {!usuario && temSenha(perfil) && (
         <CampoSenha rotulo="Senha inicial" valor={senha} aoMudar={setSenha} erro={erros.senha} comGerador />
       )}
+      <AvisoDeAcesso novo={!usuario} perfil={perfil} perfilAtual={usuario?.perfil} />
       <ErroGeral erro={erroGeral} />
       <Rodape
         salvando={salvando}
@@ -257,7 +296,7 @@ export function DialogoAcesso({ usuario, aoFechar }: { usuario: Usuario | null; 
           <DialogDescription>
             {desativar
               ? `${usuario?.nome} deixa de entrar na hora, mesmo que esteja com a sessão aberta. O histórico e os processos continuam.`
-              : `${usuario?.nome} volta a entrar com a mesma senha de antes.`}
+              : `${usuario?.nome} volta a entrar normalmente.`}
           </DialogDescription>
         </DialogHeader>
         <ErroGeral erro={erro} />

@@ -127,7 +127,7 @@ def test_reenviar_a_mudanca_de_situacao_nao_cria_segundo_evento(client, sessao, 
 
 
 def test_resposta_vazia_204_tambem_e_repetida(client, sessao):
-    alvo = criar_usuario(sessao, "Alvo", "alvo@exemplo.com", "leitor", "senha-do-alvo-1234")
+    alvo = criar_usuario(sessao, "Alvo", "alvo@exemplo.com", "admin", "senha-do-alvo-1234")
     sessao.commit()
     url = f"/usuarios/{alvo.id}/senha"
     a = _post(client, url, {"senha": "nova-senha-bem-longa-9"})
@@ -137,7 +137,7 @@ def test_resposta_vazia_204_tambem_e_repetida(client, sessao):
 
 
 def test_a_senha_do_pedido_nao_e_guardada(client, sessao):
-    alvo = criar_usuario(sessao, "Alvo", "alvo@exemplo.com", "leitor", "senha-do-alvo-1234")
+    alvo = criar_usuario(sessao, "Alvo", "alvo@exemplo.com", "admin", "senha-do-alvo-1234")
     sessao.commit()
     _post(client, f"/usuarios/{alvo.id}/senha", {"senha": "nova-senha-bem-longa-9"})
     sessao.expire_all()

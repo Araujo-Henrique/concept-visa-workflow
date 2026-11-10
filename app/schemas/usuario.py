@@ -11,11 +11,11 @@ class UsuarioNovo(BaseModel):
     nome: Texto
     email: Texto
     perfil: str
-    senha: str | None = None  # sem senha: o usuário só poderá entrar com o Google (etapa futura)
+    senha: str | None = None  # só para admin; os demais perfis entram com o Google (sem senha)
 
 
 class UsuarioUpdate(BaseModel):
-    """O e-mail não muda: ele é a identidade do usuário (login e, no futuro, Google)."""
+    """O e-mail não muda: ele é a identidade do usuário (é com ele que o Google identifica a pessoa)."""
     model_config = ConfigDict(extra="forbid")
 
     nome: Texto | None = None

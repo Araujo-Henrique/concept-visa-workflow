@@ -89,7 +89,17 @@ mudança e o evento juntos.
   uma fila e o histórico nunca registra uma "situação anterior" errada.
 
 ## Autenticação
-Todas as rotas, menos o login, exigem um token (`Authorization: Bearer <token>`); sem ele, 401.
+Todas as rotas, menos as de entrada (`/auth/login`, `/auth/google`, `/auth/google/config`) e os health checks,
+exigem um token (`Authorization: Bearer <token>`); sem ele, 401.
+
+**Duas formas de entrar:**
+- **Google (todos os perfis):** é o caminho normal. O Google só prova quem a pessoa é; **quem pode entrar é o
+  nosso cadastro**: o e-mail precisa estar em Usuários e ativo, senão 403 (nada é criado). O perfil vem do
+  cadastro, nunca do Google.
+- **E-mail e senha (só `admin`):** acesso reserva, para o administrador não ficar trancado fora se o Google ou a
+  configuração cair. Os demais perfis não têm senha: a API recusa criar (422) ou redefinir (409) senha de quem não
+  é admin, e quem deixa de ser admin perde a senha (fica na auditoria). Quem não é admin e digita a senha certa
+  recebe o mesmo 401 de sempre.
 
 ```
 # 1. crie o primeiro administrador (a senha é pedida no terminal, nunca vai para o código ou o histórico)
@@ -105,10 +115,39 @@ python -m scripts.usuario senha --email fulano@empresa.com.br
 - Sessão deslizante: `POST /auth/renovar` troca um token ainda válido por um novo com a validade cheia (o front
   chama enquanto a pessoa usa o sistema). O token guarda a hora do login e a renovação nunca passa de
   `JWT_SESSAO_MAXIMA_HORAS` (padrão 10) depois dele: aí responde 401 e é preciso entrar de novo.
-- Falhas de login (senha errada, e-mail inexistente, usuário inativo ou só-Google) dão a mesma resposta 401.
-  Usuário inativo nem chega a ter a senha conferida.
+- Falhas de login por senha (senha errada, e-mail inexistente, usuário inativo, sem senha ou que não é admin) dão a
+  mesma resposta 401. Quem não vai poder entrar nem chega a ter a senha conferida.
 - `JWT_SECRET` (mínimo 32 caracteres) vem do `.env`; sem ele a API recusa emitir tokens.
 - Processos e eventos registram quem os criou ou alterou.
+
+### Login com o Google (OpenID Connect, código de autorização + PKCE)
+1. O front (`web/app/api/auth/google`) guarda `state`, `nonce` e o verificador PKCE num cookie httpOnly de 10
+   minutos e manda a pessoa ao Google (`openid email profile`, `prompt=select_account`).
+2. O Google devolve a pessoa a `/api/auth/google/callback` com um `code`. O front confere o `state` e entrega
+   `code`, verificador, `nonce` e `redirect_uri` à API (`POST /auth/google`).
+3. A **API** troca o código pelo `id_token` (a chave secreta só existe aqui) e confere **assinatura** (chaves
+   públicas do Google, RS256 fixo), **emissor**, **destinatário** (`aud` = nosso ID de cliente), **validade**,
+   **`nonce`** e **`email_verified`**. Só então procura o e-mail no cadastro (sem diferenciar maiúsculas) e, se
+   estiver ativo, devolve o nosso token. A sessão (cookie, renovação, teto de 10 h) é a mesma do login por senha.
+
+| Variável (`.env` da raiz, só a API lê) | Para quê |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` | ID do cliente OAuth (Google Cloud Console → Clientes). Não é segredo. |
+| `GOOGLE_CLIENT_SECRET` | Chave secreta do cliente. **Segredo**: só no `.env`, nunca em chat, commit ou log. |
+| `GOOGLE_ALLOWED_DOMAIN` | Opcional: aceita só e-mails desse domínio (ex.: `concept.com.br`). Vazio = qualquer. |
+
+- **Endereço de retorno:** o Google só devolve a pessoa a endereços cadastrados, **idênticos** (letra por letra) em
+  Google Cloud → Clientes → "URIs de redirecionamento autorizados". Cadastre um por ambiente:
+  `http://localhost:3000/api/auth/google/callback` (use `localhost`, não `127.0.0.1`),
+  `https://SEU-DOMINIO.ngrok-free.dev/api/auth/google/callback` e, na VPS,
+  `https://seu.dominio.com.br/api/auth/google/callback`. Outro endereço dá `redirect_uri_mismatch`.
+- O front descobre o próprio endereço pelo `X-Forwarded-Host/Proto` (ngrok, nginx) ou pelo `Host`. Para fixar,
+  defina `APP_URL` no ambiente do front (ex.: `APP_URL=https://vistos.concept.com.br`).
+- Erros voltam ao login com um motivo (`/login?erro=google_sem_acesso`, `google_cancelado`, `google_expirou`...) que a
+  tela traduz. Nada do Google (nem o código) fica na URL. Falhas e logins vão para o log `concept.acesso` com o
+  e-mail mascarado, e o limite de tentativas por IP vale também aqui.
+- Sem `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `/auth/google/config` responde 503 e a tela avisa que o login
+  com o Google não está disponível (o admin continua entrando com a senha).
 
 ## Proteções contra abuso
 Valem igual no ngrok e numa VPS (estão no código, não no caminho até ele). Os números vêm do `.env`.
@@ -171,8 +210,7 @@ então uma rota nova já nasce protegida (há um teste que percorre todas as rot
 - A empresa nunca fica sem um administrador ativo: a API recusa (409) rebaixar ou desativar o último.
 - Excluir cliente (`DELETE /clientes/{id}`, só admin): com processos, a API recusa (409) a menos que venha
   `com_processos=true`; aí apaga junto processos, solicitantes, formulários e eventos. É definitivo.
-- "Entrar com Google" fica como melhoria futura: será uma segunda forma de entrar, ligada ao mesmo usuário
-  pelo e-mail, sem alterar o que existe.
+- Só `admin` tem senha; os outros perfis entram com o Google, pelo e-mail cadastrado (veja "Autenticação").
 
 ## Importação do banco do Projeto 1
 `app/importacao/projeto1.py` migra clientes e processos do Concept Client Registry para este esquema
@@ -219,5 +257,4 @@ python -m scripts.seed_ficticio --confirmo-dados-ficticios     # pede a senha do
 ## Estado
 Etapas 1 a 8 concluídas (MVP): modelagem, SQLAlchemy + Alembic, CRUD com painel, workflow com histórico,
 importação do Projeto 1, autenticação por senha + JWT, autorização por perfil com administração de usuários,
-testes com CI e seed fictício. O front (`web/`) está em andamento.
-Pendente: "Entrar com Google" (etapa 5b), como melhoria depois do MVP.
+testes com CI e seed fictício, e o "Entrar com o Google" (etapa 5b). O front (`web/`) está em andamento.

@@ -48,7 +48,7 @@ describe("Usuários", () => {
     );
   });
 
-  it("novo usuário: confere a senha antes e envia o e-mail em minúsculas com o perfil escolhido", async () => {
+  it("novo usuário que não é admin: sem senha (entra com o Google), e-mail em minúsculas", async () => {
     criar.mockResolvedValue({ ok: true, dados: { ...usuarios[1]!, id: 9, nome: "Dora" } });
     render(<Tripulacao usuarios={usuarios} euId={1} />);
     await userEvent.click(screen.getByRole("button", { name: "Novo usuário" }));
@@ -56,6 +56,23 @@ describe("Usuários", () => {
     await userEvent.type(dialogo.getByLabelText("Nome"), "Dora");
     await userEvent.type(dialogo.getByLabelText("E-mail"), "Dora@Exemplo.com");
     await userEvent.click(dialogo.getByRole("radio", { name: /Leitor/ }));
+    expect(dialogo.queryByLabelText("Senha inicial")).not.toBeInTheDocument();
+    expect(dialogo.getByRole("note")).toHaveTextContent("Entra só com o Google");
+    await userEvent.click(dialogo.getByRole("button", { name: "Criar usuário" }));
+    expect(criar).toHaveBeenCalledTimes(1);
+    const [corpo, chave] = criar.mock.calls[0]!;
+    expect(corpo).toEqual({ nome: "Dora", email: "dora@exemplo.com", perfil: "leitor" }); // nenhuma senha enviada
+    expect(chave).toMatch(/^[A-Za-z0-9._:-]{8,80}$/); // a chave de idempotência do formulário
+  });
+
+  it("novo administrador: pede a senha (mínimo de 10 caracteres) e a envia", async () => {
+    criar.mockResolvedValue({ ok: true, dados: { ...usuarios[0]!, id: 10, nome: "Edu" } });
+    render(<Tripulacao usuarios={usuarios} euId={1} />);
+    await userEvent.click(screen.getByRole("button", { name: "Novo usuário" }));
+    const dialogo = within(await screen.findByRole("dialog"));
+    await userEvent.type(dialogo.getByLabelText("Nome"), "Edu");
+    await userEvent.type(dialogo.getByLabelText("E-mail"), "edu@exemplo.com");
+    await userEvent.click(dialogo.getByRole("radio", { name: /Administrador/ }));
     await userEvent.type(dialogo.getByLabelText("Senha inicial"), "curta");
     await userEvent.click(dialogo.getByRole("button", { name: "Criar usuário" }));
     expect(dialogo.getByText(/pelo menos 10 caracteres/)).toBeInTheDocument();
@@ -64,9 +81,19 @@ describe("Usuários", () => {
     await userEvent.click(dialogo.getByRole("button", { name: /Gerar/ }));
     await userEvent.click(dialogo.getByRole("button", { name: "Criar usuário" }));
     expect(criar).toHaveBeenCalledWith(
-      expect.objectContaining({ nome: "Dora", email: "dora@exemplo.com", perfil: "leitor" }),
-      expect.stringMatching(/^[A-Za-z0-9._:-]{8,80}$/), // a chave de idempotência do formulário
+      expect.objectContaining({ nome: "Edu", perfil: "admin", senha: expect.any(String) }),
+      expect.any(String),
     );
+  });
+
+  it("'Redefinir senha' só existe para administrador", async () => {
+    render(<Tripulacao usuarios={usuarios} euId={1} />);
+    await userEvent.click(screen.getByRole("button", { name: "Ações para Henrique Araujo" }));
+    expect(await screen.findByRole("menuitem", { name: /Redefinir senha/ })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: "Ações para Bruna Lima" }));
+    expect(await screen.findByRole("menuitem", { name: /Editar nome e perfil/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Redefinir senha/ })).not.toBeInTheDocument();
   });
 });
 
