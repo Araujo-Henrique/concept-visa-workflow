@@ -3,6 +3,7 @@
 Sistema de acompanhamento do fluxo de processos de visto (obtenção, renovação e passaporte), com histórico
 de situações, usuários e perfis. Projeto 2 trilha de estudos; veja [docs/PLANO.md](docs/PLANO.md) para o plano
 e as regras, e [docs/DER.md](docs/DER.md) para o diagrama das tabelas.
+Para colocar no ar numa VPS (Docker, HTTPS, backups e migração dos dados): [docs/DEPLOY.md](docs/DEPLOY.md).
 
 > Todos os dados de exemplo deste repositório são fictícios.
 
