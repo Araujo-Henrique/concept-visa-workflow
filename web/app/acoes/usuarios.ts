@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 
 import { apiEnviar, apiGet } from "@/lib/api";
+import { gravarSessao } from "@/lib/cookies-sessao";
 import { tentar } from "@/lib/resultado";
 import type { Usuario } from "@/lib/tipos";
 import type { RegistroAuditoria } from "@/lib/usuarios";
@@ -40,5 +41,16 @@ export async function auditoriaDoUsuario(usuarioId: number) {
 
 /** Só o administrador tem senha (a API recusa os demais com 403). Precisa da senha atual. */
 export async function trocarMinhaSenha(senhaAtual: string, novaSenha: string) {
-  return tentar(() => apiEnviar("POST", "/auth/senha", { senha_atual: senhaAtual, nova_senha: novaSenha }));
+  // Trocar a senha derruba as outras sessões; a API devolve um token novo para esta continuar logada.
+  return tentar(async () => {
+    const token = await apiEnviar<{ access_token: string; expira_em_minutos: number }>(
+      "POST",
+      "/auth/senha",
+      {
+        senha_atual: senhaAtual,
+        nova_senha: novaSenha,
+      },
+    );
+    if (token) await gravarSessao(token.access_token, token.expira_em_minutos);
+  });
 }
