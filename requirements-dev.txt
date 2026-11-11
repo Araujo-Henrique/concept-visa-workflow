@@ -1,0 +1,5 @@
+# Para desenvolver e testar: tudo da produção + as ferramentas de teste (não vão para a imagem Docker)
+-r requirements.txt
+pytest
+pytest-cov
+httpx2

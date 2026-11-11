@@ -23,6 +23,10 @@ O que **nunca** vai: `.env.prod` (segredos) e `concept.dump` (dados de clientes)
 **1. DNS.** No painel do domínio, crie um registro `A` do subdomínio apontando para o IP da VPS. Confira com
 `nslookup vistos.suaempresa.com.br` antes de seguir (a propagação pode levar minutos).
 
+**Não crie registro `AAAA` (IPv6).** O Docker esconde o IP real de quem acessa por IPv6 (todos apareceriam com o
+mesmo endereço interno), e o limite de tentativas de login passaria a valer para todos juntos. Só com o `A`, todo
+mundo entra por IPv4 e o IP real é preservado. Se o provedor da VPS já criou um `AAAA` sozinho, apague-o.
+
 **2. Primeiro acesso e usuário próprio.** O provedor entrega acesso como `root`. Troque por um usuário comum:
 
 ```bash
@@ -107,6 +111,12 @@ powershell -File deploy\exportar-dados.ps1          # gera concept.dump na raiz 
 scp concept.dump deploy@IP_DA_VPS:~/concept/
 ```
 
+Se o `pg_dump` falhar com "connection refused" ou "no pg_hba.conf entry", é o PostgreSQL do seu computador recusando a
+conexão que vem do contêiner Docker. Em `postgresql.conf` use `listen_addresses = '*'` e, em `pg_hba.conf`, libere a
+rede do Docker (ex.: `host all all 172.16.0.0/12 scram-sha-256`); reinicie o PostgreSQL, rode de novo e **desfaça
+essas duas linhas depois**. (Alternativa: `pg_dump -Fc --no-owner --no-privileges -f concept.dump "$DATABASE_URL"`
+direto no seu computador, se tiver o `pg_dump` 18 instalado.)
+
 **Na VPS**, restaurando num banco ainda vazio, **antes** de subir a API (a API cria tabelas ao subir, e a restauração
 precisa de banco vazio):
 
@@ -139,10 +149,27 @@ docker compose --env-file .env.prod logs -f caddy       # procure "certificate o
 
 Abra `https://SEU_DOMINIO`: deve aparecer a tela de login com o cadeado.
 
-**Login com o Google:** no Google Cloud Console, no cliente OAuth, adicione:
+**Confira se a API vê o IP real de quem acessa** (é ele que vale para o limite de tentativas). Abra o site pelo
+celular (com o Wi-Fi desligado, em 4G) e rode:
 
-- Origem JavaScript autorizada: `https://SEU_DOMINIO`
-- URI de redirecionamento: `https://SEU_DOMINIO/api/auth/google/callback`
+```bash
+docker compose --env-file .env.prod logs --tail=30 api | grep '"ip"'
+```
+
+Tem que aparecer o IP público do celular. Se só aparecer `172.30.0.1` (endereço interno do Docker), o IP real não está
+chegando: confirme que não há registro `AAAA` no DNS e que o acesso é por IPv4.
+
+**Login com o Google:** no Google Cloud Console, no cliente OAuth (tipo "Aplicativo da Web"), adicione só o
+**URI de redirecionamento autorizado**, idêntico e com `https`:
+
+```
+https://SEU_DOMINIO/api/auth/google/callback
+```
+
+Não precisa de "Origem JavaScript autorizada": o login roda no servidor, não no navegador. Enquanto o app estiver em
+modo **Teste** (Google Auth Platform → Público-alvo), só entram os e-mails listados em "Usuários de teste", e todos
+eles também precisam estar cadastrados em Usuários no sistema. O Google pode levar alguns minutos para valer o
+endereço novo.
 
 E preencha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (e, se quiser, `GOOGLE_ALLOWED_DOMAIN`) no `.env.prod`; depois
 `docker compose --env-file .env.prod up -d` para aplicar.
@@ -180,7 +207,9 @@ scp "deploy@IP_DA_VPS:~/concept/backups/concept-*.dump" C:\backups-concept\
 local protegido.
 
 **Restaurar um backup** (num banco vazio): mesmo comando da Parte B, apontando para o arquivo do backup. **Teste isso
-uma vez** num servidor de teste: um backup que nunca foi restaurado é uma suposição.
+uma vez** num servidor de teste: um backup que nunca foi restaurado é uma suposição. Um jeito simples, sem outra
+máquina: `docker run --rm -d --name teste-restore -e POSTGRES_PASSWORD=x postgres:18`, restaure o dump nele com
+`pg_restore`, confira as contagens e apague com `docker rm -f teste-restore`.
 
 ### Cuidados
 

@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validat
 from app.enums import (SITUACOES, Consulado, DocsREN, Monitoramento, Orientacao, Rascunho, TipoProcesso)
 from app.schemas.comum import MAX_PESSOAS_POR_PROCESSO, Texto, TextoLivre, atualizacao, texto
 from app.schemas.solicitante import SolicitanteOut
+from app.tempo import hoje_em_sp
 
 
 def mexeu(info: ValidationInfo, *campos: str) -> bool:
@@ -115,7 +116,7 @@ class RENBase(BaseModel):
     def _regras(self, info: ValidationInfo):
         if self.data_casv and self.consulado is None:
             raise ValueError("Com data de CASV, informe o consulado")
-        if self.despachado_em and self.despachado_em > date.today() and mexeu(info, "despachado_em"):
+        if self.despachado_em and self.despachado_em > hoje_em_sp() and mexeu(info, "despachado_em"):
             raise ValueError("A data do despacho não pode ser no futuro")
         return self
 

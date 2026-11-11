@@ -1,3 +1,4 @@
+# O que a API precisa para RODAR (é o que a imagem Docker instala). Para testar: requirements-dev.txt
 fastapi
 uvicorn[standard]
 pydantic
@@ -7,7 +8,5 @@ psycopg[binary]
 python-dotenv
 pwdlib[argon2]
 PyJWT
-pytest
-pytest-cov
-httpx2
 cryptography
+tzdata  # banco de fusos horários (zoneinfo): o Windows e a imagem Docker slim não trazem

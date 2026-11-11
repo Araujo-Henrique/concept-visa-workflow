@@ -26,7 +26,7 @@ A migration base cria só a estrutura e os dados de referência (perfis e situa�
 ```
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # produção + ferramentas de teste (requirements.txt é só o de produção)
 copy .env.example .env        # preencha DATABASE_URL (senha com @ vira %40)
 alembic upgrade head          # cria/atualiza as tabelas
 ```

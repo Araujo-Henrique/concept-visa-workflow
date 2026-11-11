@@ -19,6 +19,7 @@ from app.enums import (SITUACOES, Consulado, DocsREN, Orientacao, Rascunho, Resu
 from app.models import (Cliente, Evento, FormularioDS160, Processo, ProcessoOBT, ProcessoPASS, ProcessoREN,
                         Solicitante, Usuario)
 from app.servicos.usuarios import achar_por_email, criar_usuario
+from app.tempo import hoje_em_sp
 from app.servicos.workflow import SITUACAO_FINAL, mudar_situacao
 
 NOMES = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio", "Gabriela", "Hugo", "Iara", "João", "Karen",
@@ -178,7 +179,7 @@ def semear(sessao: Session, senha: str | None, *, quantidade: int = 36, semente:
             usuario = criar_usuario(sessao, nome, email, perfil, senha if perfil == "admin" else None)
             usuario.ativo = ativo
         usuarios[perfil if ativo else "inativo"] = usuario
-    gerador = _Gerador(rng, hoje or date.today(), usuarios["atendente"])
+    gerador = _Gerador(rng, hoje or hoje_em_sp(), usuarios["atendente"])
 
     nomes = gerar_nomes(rng, quantidade)
     for i, nome in enumerate(nomes):

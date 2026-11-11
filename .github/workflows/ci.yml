@@ -55,7 +55,7 @@ jobs:
           cache: pip # guarda o download das bibliotecas entre execuções
 
       - name: Instalar dependências
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt   # produção + pytest
 
       # O conftest recria o esquema e roda `alembic upgrade head`: se uma migration quebrar,
       # a suíte inteira falha aqui, num banco vazio (sem nenhum estado da sua máquina).
