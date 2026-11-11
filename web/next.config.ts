@@ -23,7 +23,10 @@ export const CABECALHOS_DE_SEGURANCA = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone", // gera .next/standalone: a imagem Docker leva só o necessário para rodar
+  // "standalone" gera .next/standalone (a imagem Docker leva só o necessário e roda `node server.js`), mas o
+  // `next start` não funciona com ele. Por isso só o Docker liga (NEXT_OUTPUT=standalone no web/Dockerfile);
+  // `npm run dev` e `npm run publicar` seguem sem ele.
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   poweredByHeader: false, // não anuncia que é Next.js (e a versão) para quem procura alvo
   headers: async () => [{ source: "/:path*", headers: CABECALHOS_DE_SEGURANCA }],
   cacheComponents: true,

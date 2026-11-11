@@ -7,7 +7,7 @@ RUN npm ci --ignore-scripts
 
 FROM node:24-slim AS construir
 WORKDIR /app
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone
 COPY --from=dependencias /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
