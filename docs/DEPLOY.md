@@ -1,5 +1,8 @@
 # Colocar no ar numa VPS (Docker + HTTPS)
 
+> Vai usar a **Oracle Cloud (plano gratuito)**? Há um guia próprio, com a conta, a máquina ARM e a rede da Oracle:
+> [docs/DEPLOY-ORACLE.md](DEPLOY-ORACLE.md). As partes B, C e D são iguais às deste guia.
+
 Como fica:
 
 ```
