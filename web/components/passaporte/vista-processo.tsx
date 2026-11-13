@@ -53,6 +53,7 @@ export function VistaProcesso({
             <PaginaDados
               linha={linha}
               emailCliente={emailCliente}
+              hoje={hoje}
               detalhe={{ ...detalhe, situacao: linha.situacao }}
               acao={
                 permissoes.escrever && (

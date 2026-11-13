@@ -12,6 +12,7 @@ import {
   linhaDeMaquina,
   ORIENTACOES,
   paramsDoPainel,
+  previsaoAtrasada,
   rotuloResultado,
   STATUS_DS160,
   tomDaSituacao,
@@ -216,5 +217,33 @@ describe("DS-160 no painel", () => {
     expect(apoioDoDs160({ formularios: 1, pessoas: 3, fechados: 1 })).toBe("2 sem DS-160");
     expect(apoioDoDs160({ formularios: 2, pessoas: 4, fechados: 0 })).toBe("0/2 fechados · 2 sem DS-160");
     expect(apoioDoDs160({ formularios: 0, pessoas: 3, fechados: 0 })).toBeNull(); // sem nenhum: o selo mostra "—"
+  });
+});
+
+describe("previsão da orientação atrasada", () => {
+  const base = { previsao_orientacao: "2026-11-02", orientacao: "Pendente", situacao: "Processando" };
+  const HOJE = "2026-11-13";
+
+  it("alerta quando a previsão passou e a orientação ainda pede ação", () => {
+    for (const orientacao of ["Pendente", "Opções enviadas", "Sem resposta", "Escolheu padrão"]) {
+      expect(previsaoAtrasada({ ...base, orientacao }, HOJE)).toBe(true);
+    }
+  });
+
+  it("não alerta se já foi marcada, já foi feita ou foi a Opt A", () => {
+    for (const orientacao of ["Agendada", "Fornecidas", "Opt A"]) {
+      expect(previsaoAtrasada({ ...base, orientacao }, HOJE)).toBe(false);
+    }
+  });
+
+  it("não alerta se a previsão é de hoje ou do futuro (só depois que passa)", () => {
+    expect(previsaoAtrasada({ ...base, previsao_orientacao: "2026-11-13" }, HOJE)).toBe(false);
+    expect(previsaoAtrasada({ ...base, previsao_orientacao: "2026-12-01" }, HOJE)).toBe(false);
+    expect(previsaoAtrasada({ ...base, previsao_orientacao: "2026-11-12" }, HOJE)).toBe(true);
+  });
+
+  it("sem previsão (sem CASV) ou com o processo concluído não alerta", () => {
+    expect(previsaoAtrasada({ ...base, previsao_orientacao: null }, HOJE)).toBe(false);
+    expect(previsaoAtrasada({ ...base, situacao: "Concluido" }, HOJE)).toBe(false);
   });
 });

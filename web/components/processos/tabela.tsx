@@ -1,4 +1,4 @@
-import { Check, Users } from "lucide-react";
+import { Check, TriangleAlert, Users } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -8,16 +8,27 @@ import {
   SeloResultado,
   SeloSituacao,
 } from "@/components/processos/selos";
+import { hojeEmSP } from "@/lib/agenda";
 import {
   datasPrincipais,
   formatarData,
   formatarDataCurta,
+  previsaoAtrasada,
   ROTULO_PREVISAO_ORIENTACAO,
 } from "@/lib/processos";
 import type { LinhaPainel, TipoProcesso } from "@/lib/tipos";
 
 /** Tabela de processos (até 50 por página: não precisa de virtualização). A linha inteira abre o processo. */
-export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo: TipoProcesso }) {
+export function TabelaProcessos({
+  linhas,
+  tipo,
+  hoje = hojeEmSP(),
+}: {
+  linhas: LinhaPainel[];
+  tipo: TipoProcesso;
+  /** "AAAA-MM-DD" de Brasília (para marcar a previsão da orientação que já passou) */
+  hoje?: string;
+}) {
   if (linhas.length === 0) return <SemResultado />;
   const comConsulado = tipo !== "PASS";
   const comOrientacao = tipo === "OBT";
@@ -100,7 +111,20 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
               )}
               {datasPrincipais(l).map((d) => (
                 <td key={d.rotulo} className="px-3 py-3 tabular-nums">
-                  {formatarData(d.valor)}
+                  {d.rotulo === ROTULO_PREVISAO_ORIENTACAO &&
+                  l.tipo === "OBT" &&
+                  previsaoAtrasada(l, hoje) ? (
+                    // a previsão já passou e a orientação segue sem data marcada nem feita: alerta
+                    <span
+                      className="inline-flex items-center gap-1 font-semibold text-alerta"
+                      title="A previsão da orientação já passou e ela ainda não foi agendada"
+                    >
+                      <TriangleAlert className="size-3.5" aria-label="orientação atrasada" />
+                      {formatarData(d.valor)}
+                    </span>
+                  ) : (
+                    formatarData(d.valor)
+                  )}
                   {d.rotulo === "Despacho" && l.tipo === "REN" && l.despachado_em && (
                     <Check className="ml-1 inline size-3.5 text-sucesso" aria-label="despachado" />
                   )}

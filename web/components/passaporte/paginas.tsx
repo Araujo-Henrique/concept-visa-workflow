@@ -3,12 +3,20 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
+import { TriangleAlert } from "lucide-react";
+
 import { Simbolo } from "@/components/marca/simbolo";
 import { SeloOrientacao, SeloSituacao } from "@/components/processos/selos";
 import { rotuloSituacao, TIPOS } from "@/lib/formatos";
 import { formatarTelefone } from "@/lib/formularios";
-import { dataEHora, formatarData, inclinacaoDoCarimbo, linhaDeMaquina } from "@/lib/processos";
-import type { Evento, LinhaPainel, ProcessoDetalhe } from "@/lib/tipos";
+import {
+  dataEHora,
+  formatarData,
+  inclinacaoDoCarimbo,
+  linhaDeMaquina,
+  previsaoAtrasada,
+} from "@/lib/processos";
+import type { Evento, LinhaOBT, LinhaPainel, ProcessoDetalhe } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** Fundo de "papel de segurança" (guilhoché) das páginas internas. */
@@ -58,7 +66,7 @@ export function Capa({ linha }: { linha: LinhaPainel }) {
 
 type Campo = { rotulo: string; valor: ReactNode; largo?: boolean };
 
-function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
+function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe, hoje?: string): Campo[] {
   const texto = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
   const data = (v: unknown) => formatarData(typeof v === "string" ? v : null);
   switch (linha.tipo) {
@@ -74,7 +82,19 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
           rotulo: "Orientação",
           valor: <SeloOrientacao orientacao={typeof d.orientacao === "string" ? d.orientacao : null} />,
         },
-        { rotulo: "Orientação prevista", valor: data(d.previsao_orientacao) },
+        {
+          rotulo: "Orientação prevista",
+          valor:
+            hoje && previsaoAtrasada(linha as LinhaOBT, hoje) ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-alerta">
+                <TriangleAlert className="size-4" aria-hidden />
+                {data(d.previsao_orientacao)}
+                <span className="text-xs font-medium">atrasada: ainda sem agendar</span>
+              </span>
+            ) : (
+              data(d.previsao_orientacao)
+            ),
+        },
         { rotulo: "Data da orientação", valor: data(d.orientacao_data) },
         { rotulo: "Orientado por", valor: texto(linha.orientacao_por) },
         { rotulo: "Rastreio", valor: texto(d.codigo_rastreio) },
@@ -100,11 +120,14 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
 export function PaginaDados({
   linha,
   emailCliente,
+  hoje,
   detalhe,
   acao,
   extra,
 }: {
   linha: LinhaPainel;
+  /** "AAAA-MM-DD" de Brasília (para alertar a previsão da orientação que já passou) */
+  hoje?: string;
   emailCliente?: string | null;
   detalhe: ProcessoDetalhe;
   acao?: ReactNode;
@@ -130,7 +153,7 @@ export function PaginaDados({
     },
     { rotulo: "Telefone", valor: formatarTelefone(linha.telefone) },
     { rotulo: "Grupo", valor: linha.grupo ?? "—" },
-    ...camposDoTipo(linha, detalhe),
+    ...camposDoTipo(linha, detalhe, hoje),
     { rotulo: "Aberto em", valor: formatarData(detalhe.criado_em) },
     { rotulo: "Atualizado em", valor: formatarData(detalhe.atualizado_em) },
   ];

@@ -144,6 +144,27 @@ export function dadosDaOrientacao(valor: string | null | undefined) {
 
 export type DataDoProcesso = { rotulo: string; valor: string | null };
 
+/** Orientações em que ainda falta alguém agir: sem data marcada e sem ter sido feita. */
+const ORIENTACOES_QUE_PEDEM_ACAO: readonly string[] = [
+  "Pendente",
+  "Opções enviadas",
+  "Sem resposta",
+  "Escolheu padrão",
+];
+
+/**
+ * A previsão da orientação (CASV - 14 dias) já passou e a orientação ainda pede ação (sem data marcada e sem
+ * ter sido feita)? Aí vale um alerta: o prazo "normal" se foi e ninguém agendou. `hoje` é "AAAA-MM-DD" de
+ * Brasília. Processo concluído não alerta; "Agendada" e "Fornecidas" também não (já têm data ou já foram feitas).
+ */
+export function previsaoAtrasada(
+  l: { previsao_orientacao: string | null; orientacao: string | null; situacao: string },
+  hoje: string,
+): boolean {
+  if (!l.previsao_orientacao || l.situacao === "Concluido") return false;
+  return l.previsao_orientacao < hoje && ORIENTACOES_QUE_PEDEM_ACAO.includes(l.orientacao ?? "Pendente");
+}
+
 /** Rótulo da previsão da orientação para a entrevista (2 semanas antes do CASV). */
 export const ROTULO_PREVISAO_ORIENTACAO = "Orientação prevista";
 

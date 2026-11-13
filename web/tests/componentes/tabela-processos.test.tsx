@@ -127,3 +127,36 @@ describe("Tabela de processos: coluna DS-160", () => {
     expect(screen.queryByRole("columnheader", { name: "DS-160" })).not.toBeInTheDocument();
   });
 });
+
+describe("Tabela de processos: previsão da orientação atrasada", () => {
+  const HOJE = "2026-11-13"; // a previsão do exemplo (01/12) ainda está no futuro; as abaixo usam 02/11
+
+  it("destaca a previsão que passou com a orientação ainda sem agendar", () => {
+    render(<TabelaProcessos linhas={[obt({ previsao_orientacao: "2026-11-02" })]} tipo="OBT" hoje={HOJE} />);
+    expect(screen.getByLabelText("orientação atrasada")).toBeInTheDocument();
+    expect(screen.getByTitle(/ainda não foi agendada/)).toHaveTextContent("02/11/2026");
+  });
+
+  it("não destaca quando a orientação já está agendada, foi fornecida ou a previsão é futura", () => {
+    const { rerender } = render(
+      <TabelaProcessos
+        linhas={[
+          obt({ previsao_orientacao: "2026-11-02", orientacao: "Agendada", orientacao_data: "2026-11-20" }),
+        ]}
+        tipo="OBT"
+        hoje={HOJE}
+      />,
+    );
+    expect(screen.queryByLabelText("orientação atrasada")).not.toBeInTheDocument();
+    rerender(
+      <TabelaProcessos
+        linhas={[obt({ previsao_orientacao: "2026-11-02", orientacao: "Fornecidas" })]}
+        tipo="OBT"
+        hoje={HOJE}
+      />,
+    );
+    expect(screen.queryByLabelText("orientação atrasada")).not.toBeInTheDocument();
+    rerender(<TabelaProcessos linhas={[obt()]} tipo="OBT" hoje={HOJE} />);
+    expect(screen.queryByLabelText("orientação atrasada")).not.toBeInTheDocument();
+  });
+});
