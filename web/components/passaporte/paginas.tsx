@@ -74,6 +74,7 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe): Campo[] {
           rotulo: "Orientação",
           valor: <SeloOrientacao orientacao={typeof d.orientacao === "string" ? d.orientacao : null} />,
         },
+        { rotulo: "Orientação prevista", valor: data(d.previsao_orientacao) },
         { rotulo: "Data da orientação", valor: data(d.orientacao_data) },
         { rotulo: "Orientado por", valor: texto(linha.orientacao_por) },
         { rotulo: "Rastreio", valor: texto(d.codigo_rastreio) },

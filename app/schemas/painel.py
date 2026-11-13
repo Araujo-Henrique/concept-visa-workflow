@@ -32,6 +32,7 @@ class PainelOBT(PainelBase):
     orientacao: str | None  # um dos valores de app.enums.Orientacao
     orientacao_data: date | None
     orientacao_por: str | None  # vazio quando ninguém foi indicado (comum no histórico antigo)
+    previsao_orientacao: date | None  # CASV - 14 dias; só previsão, não muda o status da orientação
 
 
 class PainelREN(PainelBase):

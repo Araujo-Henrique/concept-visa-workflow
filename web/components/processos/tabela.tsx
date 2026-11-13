@@ -2,7 +2,12 @@ import { Check, Users } from "lucide-react";
 import Link from "next/link";
 
 import { SeloConsulado, SeloOrientacao, SeloResultado, SeloSituacao } from "@/components/processos/selos";
-import { datasPrincipais, formatarData, formatarDataCurta } from "@/lib/processos";
+import {
+  datasPrincipais,
+  formatarData,
+  formatarDataCurta,
+  ROTULO_PREVISAO_ORIENTACAO,
+} from "@/lib/processos";
 import type { LinhaPainel, TipoProcesso } from "@/lib/tipos";
 
 /** Tabela de processos (até 50 por página: não precisa de virtualização). A linha inteira abre o processo. */
@@ -73,6 +78,15 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
                   {d.rotulo === "Despacho" && l.tipo === "REN" && l.despachado_em && (
                     <Check className="ml-1 inline size-3.5 text-sucesso" aria-label="despachado" />
                   )}
+                  {/* a previsão é só uma conta; o ✓ aparece quando a orientação já foi dada */}
+                  {d.rotulo === ROTULO_PREVISAO_ORIENTACAO &&
+                    l.tipo === "OBT" &&
+                    l.orientacao === "Fornecidas" && (
+                      <Check
+                        className="ml-1 inline size-3.5 text-sucesso"
+                        aria-label="orientação fornecida"
+                      />
+                    )}
                 </td>
               ))}
               <td className="px-4 py-3">

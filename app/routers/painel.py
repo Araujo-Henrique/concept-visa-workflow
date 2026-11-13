@@ -17,6 +17,8 @@ MAX_DIAS_AGENDA = 92  # um trimestre: a agenda é uma janela, não um relatório
 DATAS_DA_AGENDA = {"orientacao_data": "orientacao", "data_casv": "casv", "data_entrevista": "entrevista",
                    "data_despacho": "despacho", "data_pf": "pf", "prazo_pf": "prazo_pf"}
 COLUNA_DA_DATA = {evento: coluna for coluna, evento in DATAS_DA_AGENDA.items()}
+# previsão da orientação (CASV - 14): dá para filtrar o período, mas não entra na agenda (não é compromisso marcado)
+COLUNA_DA_DATA["previsao_orientacao"] = "previsao_orientacao"
 
 
 @router.get("", response_model=list[PainelOut])
@@ -24,7 +26,8 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
            consulado: Consulado | None = None, cliente: str | None = None,
            resultado_geral: str | None = None,  # Processando, Aprovado, Negado ou Parcial
            processo_id: int | None = None, cliente_id: int | None = None,
-           data: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf"] | None = None,
+           data: Literal["orientacao", "casv", "entrevista", "despacho", "pf", "prazo_pf",
+                         "previsao_orientacao"] | None = None,
            de: date | None = None, ate: date | None = None,
            despacho: Literal["pendente", "feito"] | None = None,  # REN: falta despachar / já despachado
            orientacao: Orientacao | None = None,  # OBT: em que ponto está a orientação

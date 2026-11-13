@@ -135,6 +135,9 @@ class ProcessoOBT(Processo):
         coluna_enum(Monitoramento, "monitoramento"), default=Monitoramento.ATIVO)
     data_casv: Mapped[date | None] = mapped_column(Date)
     data_entrevista: Mapped[date | None] = mapped_column(Date)
+    # coluna gerada pelo próprio banco: a orientação para a entrevista é prevista para 2 semanas antes do CASV.
+    # É só uma previsão: não muda o status da orientação (Pendente só vira Agendada quando alguém agenda)
+    previsao_orientacao: Mapped[date | None] = mapped_column(Date, Computed("data_casv - 14", persisted=True))
     data_vencimento_taxa: Mapped[date | None] = mapped_column(Date)
     status_rascunho: Mapped[Rascunho] = mapped_column(coluna_enum(Rascunho, "rascunho"))
     orientacao: Mapped[Orientacao] = mapped_column(coluna_enum(Orientacao, "orientacao"))

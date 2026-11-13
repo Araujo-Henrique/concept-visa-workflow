@@ -116,12 +116,17 @@ export function dadosDaOrientacao(valor: string | null | undefined) {
 
 export type DataDoProcesso = { rotulo: string; valor: string | null };
 
+/** Rótulo da previsão da orientação para a entrevista (2 semanas antes do CASV). */
+export const ROTULO_PREVISAO_ORIENTACAO = "Orientação prevista";
+
 export function datasPrincipais(linha: LinhaPainel): DataDoProcesso[] {
   switch (linha.tipo) {
     case "OBT":
       return [
         { rotulo: "CASV", valor: linha.data_casv },
         { rotulo: "Entrevista", valor: linha.data_entrevista },
+        // previsão (CASV - 14 dias): por último, para o card do quadro continuar mostrando o CASV primeiro
+        { rotulo: ROTULO_PREVISAO_ORIENTACAO, valor: linha.previsao_orientacao },
       ];
     case "REN":
       return [
@@ -143,6 +148,7 @@ export const DATAS_FILTRAVEIS = {
   casv: "CASV",
   entrevista: "Entrevista",
   orientacao: "Orientação",
+  previsao_orientacao: "Orientação prevista",
   despacho: "Despacho",
   pf: "Polícia Federal",
   prazo_pf: "Prazo PF",
@@ -151,7 +157,7 @@ export type DataFiltravel = keyof typeof DATAS_FILTRAVEIS;
 
 /** Quais datas fazem sentido em cada tipo (a API aceita todas, mas só estas existem no tipo). */
 export const DATAS_DO_TIPO: Record<TipoProcesso, DataFiltravel[]> = {
-  OBT: ["casv", "entrevista", "orientacao"],
+  OBT: ["casv", "entrevista", "orientacao", "previsao_orientacao"],
   REN: ["casv", "despacho"],
   PASS: ["pf", "prazo_pf"],
 };

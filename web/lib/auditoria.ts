@@ -77,6 +77,7 @@ const ROTULOS: Record<string, string> = {
   status_rascunho: "Rascunho",
   orientacao: "Orientação",
   orientacao_data: "Data da orientação",
+  previsao_orientacao: "Orientação prevista",
   orientacao_por_id: "Orientado por",
   codigo_rastreio: "Código de rastreio",
   processo_anterior_id: "Tentativa anterior",

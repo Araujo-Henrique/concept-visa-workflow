@@ -44,6 +44,8 @@ export type LinhaOBT = LinhaBase & {
   orientacao: string | null;
   orientacao_data: string | null;
   orientacao_por: string | null;
+  /** CASV - 14 dias, calculada pelo banco. Só previsão: não muda o status da orientação */
+  previsao_orientacao: string | null;
 };
 export type LinhaREN = LinhaBase & {
   tipo: "REN";

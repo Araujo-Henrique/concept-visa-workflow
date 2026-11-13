@@ -36,7 +36,7 @@ integrações (Projeto 3), acesso do cliente ao próprio processo (Projeto 5).
 | `clientes` | id, nome, email, telefone, grupo | nome único (sem diferenciar maiúsculas) |
 | `situacoes` | tipo, nome | PK (tipo, nome); situações válidas por tipo de processo |
 | `processos` | id, tipo, cliente_id, situacao, processo_anterior_id, observacao, criado_por_id, criado_em, atualizado_em | tipo OBT/REN/PASS; único (id, tipo); FK (tipo, situacao) → situacoes; auto-FK `processo_anterior_id` (nova tentativa) |
-| `processo_obt` | processo_id, tipo, consulado, monitoramento, data_casv, data_entrevista, data_vencimento_taxa, status_rascunho, orientação (+data, +usuário), código de rastreio | 1:1 com processos; consulado opcional |
+| `processo_obt` | processo_id, tipo, consulado, monitoramento, data_casv, data_entrevista, previsao_orientacao (gerada = CASV − 14), data_vencimento_taxa, status_rascunho, orientação (+data, +usuário), código de rastreio | 1:1 com processos; consulado opcional |
 | `processo_ren` | processo_id, tipo, consulado, data_casv, data_despacho (gerada = CASV − 7), docs, status_rascunho, endereço, rastreio | 1:1 com processos |
 | `processo_pass` | processo_id, tipo, data_pf, prazo_pf | 1:1 com processos |
 | `solicitantes` | id, processo_id, nome, titular, resultado | exatamente um titular por processo (índice único parcial); resultado por pessoa |

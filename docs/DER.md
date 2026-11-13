@@ -100,6 +100,7 @@ erDiagram
         string monitoramento
         date data_casv
         date data_entrevista
+        date previsao_orientacao "gerada: data_casv - 14"
         date data_vencimento_taxa
         string status_rascunho
         string orientacao

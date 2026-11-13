@@ -61,8 +61,17 @@ describe("tons de situação e resultado", () => {
 describe("datas principais por tipo", () => {
   const base = { processo_id: 1, situacao: "x", cliente_id: 1, cliente: "A" } as unknown as LinhaPainel;
   it("cada tipo mostra as datas que tem", () => {
-    const obt = { ...base, tipo: "OBT", data_casv: "2026-12-01", data_entrevista: null } as LinhaPainel;
-    expect(datasPrincipais(obt).map((d) => d.rotulo)).toEqual(["CASV", "Entrevista"]);
+    const obt = {
+      ...base,
+      tipo: "OBT",
+      data_casv: "2026-12-15",
+      data_entrevista: null,
+      previsao_orientacao: "2026-12-01",
+    } as LinhaPainel;
+    expect(datasPrincipais(obt).map((d) => d.rotulo)).toEqual(["CASV", "Entrevista", "Orientação prevista"]);
+    // a previsão vem por último: o card do quadro (primeira data preenchida) continua mostrando o CASV
+    expect(datasPrincipais(obt).find((d) => d.valor)?.rotulo).toBe("CASV");
+    expect(datasPrincipais(obt)[2]?.valor).toBe("2026-12-01");
     expect(datasPrincipais({ ...base, tipo: "REN" } as LinhaPainel).map((d) => d.rotulo)).toEqual([
       "CASV",
       "Despacho",
@@ -92,6 +101,13 @@ describe("filtros da URL", () => {
       data: "despacho",
       de: "2026-01-01",
     });
+  });
+
+  it("período da previsão da orientação só existe no OBT", () => {
+    const f = lerFiltros({ tipo: "OBT", data: "previsao_orientacao", de: "2026-12-01" });
+    expect(f).toMatchObject({ data: "previsao_orientacao", de: "2026-12-01" });
+    expect(paramsDoPainel(f)).toMatchObject({ data: "previsao_orientacao", de: "2026-12-01" });
+    expect(lerFiltros({ tipo: "REN", data: "previsao_orientacao", de: "2026-12-01" }).data).toBeUndefined();
   });
 
   it("filtro de despacho só no REN e só com os valores conhecidos", () => {

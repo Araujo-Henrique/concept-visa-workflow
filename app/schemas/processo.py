@@ -91,6 +91,8 @@ OBTUpdate = atualizacao(OBTBase, "OBTUpdate")
 class OBTOut(ProcessoOut, OBTBase):
     model_config = ConfigDict(from_attributes=True)
 
+    previsao_orientacao: date | None  # calculada pelo banco: CASV - 14 dias (só previsão; não muda o status)
+
     @model_validator(mode="after")
     def _regras(self):
         # Saída mostra o que está gravado. As regras entre campos valem ao criar e editar; o histórico
