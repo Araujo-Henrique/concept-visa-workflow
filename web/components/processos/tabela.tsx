@@ -29,19 +29,19 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
       <table className="w-full min-w-[980px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs tracking-wide text-muted-foreground uppercase">
-            <th className="px-4 py-3 font-medium">Nº</th>
-            <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">Situação</th>
-            {comOrientacao && <th className="px-4 py-3 font-medium">Orientação</th>}
-            {comDs160 && <th className="px-4 py-3 font-medium">DS-160</th>}
-            {comConsulado && <th className="px-4 py-3 font-medium">Consulado</th>}
+            <th className="px-3 py-3 font-medium">Nº</th>
+            <th className="px-3 py-3 font-medium">Cliente</th>
+            <th className="px-3 py-3 font-medium">Situação</th>
+            {comOrientacao && <th className="px-3 py-3 font-medium">Orientação</th>}
+            {comDs160 && <th className="px-3 py-3 font-medium">DS-160</th>}
+            {comConsulado && <th className="px-3 py-3 font-medium">Consulado</th>}
             {rotulosDatas.map((r) => (
-              <th key={r} className="px-4 py-3 font-medium">
+              <th key={r} className="px-3 py-3 font-medium">
                 {r}
               </th>
             ))}
-            <th className="px-4 py-3 font-medium">Resultado</th>
-            <th className="px-4 py-3 text-right font-medium">Atualizado</th>
+            <th className="px-3 py-3 font-medium">Resultado</th>
+            <th className="px-3 py-3 text-right font-medium">Atualizado</th>
           </tr>
         </thead>
         <tbody>
@@ -50,10 +50,10 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
               key={l.processo_id}
               className="group relative border-b transition-colors last:border-0 hover:bg-marca-suave/50"
             >
-              <td className="px-4 py-3 font-heading text-xs font-bold tracking-wider text-muted-foreground">
+              <td className="px-3 py-3 font-heading text-xs font-bold tracking-wider text-muted-foreground">
                 #{l.processo_id}
               </td>
-              <td className="max-w-72 px-4 py-3">
+              <td className="max-w-72 px-3 py-3">
                 {/* link "esticado": cobre a linha toda, mas continua um link de verdade (teclado, nova aba) */}
                 <Link
                   href={`/processos/${l.processo_id}`}
@@ -67,16 +67,22 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <SeloSituacao situacao={l.situacao} />
               </td>
               {comOrientacao && (
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   <SeloOrientacao orientacao={l.tipo === "OBT" ? l.orientacao : null} />
+                  {/* a data da orientação agendada também conta na ordem da tabela: precisa estar à vista */}
+                  {l.tipo === "OBT" && l.orientacao === "Agendada" && l.orientacao_data && (
+                    <span className="mt-0.5 block text-[11px] text-muted-foreground tabular-nums">
+                      {formatarData(l.orientacao_data)}
+                    </span>
+                  )}
                 </td>
               )}
               {comDs160 && (
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   {l.tipo !== "PASS" && (
                     <SeloDs160
                       status={l.ds160_status}
@@ -88,12 +94,12 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
                 </td>
               )}
               {comConsulado && (
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   <SeloConsulado consulado={"consulado" in l ? l.consulado : null} />
                 </td>
               )}
               {datasPrincipais(l).map((d) => (
-                <td key={d.rotulo} className="px-4 py-3 tabular-nums">
+                <td key={d.rotulo} className="px-3 py-3 tabular-nums">
                   {formatarData(d.valor)}
                   {d.rotulo === "Despacho" && l.tipo === "REN" && l.despachado_em && (
                     <Check className="ml-1 inline size-3.5 text-sucesso" aria-label="despachado" />
@@ -109,10 +115,10 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
                     )}
                 </td>
               ))}
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <SeloResultado resultado={l.resultado_geral} />
               </td>
-              <td className="px-4 py-3 text-right text-xs text-muted-foreground tabular-nums">
+              <td className="px-3 py-3 text-right text-xs text-muted-foreground tabular-nums">
                 {formatarDataCurta(l.atualizado_em)}
               </td>
             </tr>

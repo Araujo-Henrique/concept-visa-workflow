@@ -93,6 +93,9 @@ async function Tabela({ filtros }: { filtros: Filtros }) {
   const { itens, total } = await apiLista<LinhaPainel>("/painel", paramsDoPainel(filtros));
   return (
     <>
+      <p className="mb-2 text-xs text-muted-foreground">
+        Ordem: primeiro as datas marcadas mais próximas; depois os demais, dos mais novos aos mais antigos.
+      </p>
       <TabelaProcessos linhas={itens} tipo={filtros.tipo} />
       <Paginacao filtros={filtros} total={total ?? itens.length} />
     </>

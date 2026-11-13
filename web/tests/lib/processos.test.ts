@@ -157,6 +157,11 @@ describe("filtros da URL", () => {
     });
   });
 
+  it("a tela pede a ordem por data marcada, também no quadro e em qualquer página", () => {
+    expect(paramsDoPainel(lerFiltros({}))).toMatchObject({ ordem: "agenda", offset: 0 });
+    expect(paramsDoPainel(lerFiltros({ pagina: "4" }), 10)).toMatchObject({ ordem: "agenda", offset: 30 });
+  });
+
   it("a data só segue para a API quando há período", () => {
     expect(paramsDoPainel(lerFiltros({ data: "casv" })).data).toBeUndefined();
     expect(paramsDoPainel(lerFiltros({ data: "casv", ate: "2026-12-31" })).data).toBe("casv");

@@ -22,7 +22,8 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - **Agenda**: calendário do mês com orientações, CASV, entrevistas, despachos e PF; filtro por tipo de
   compromisso, setas do teclado para andar pelos dias e o painel do dia com o link de cada processo.
 - **Processos**: abas OBT/REN/PASS, filtros na URL (busca, situação, consulado, resultado, período de uma data),
-  tabela paginada e **quadro** (kanban): arrastar um card muda a situação de verdade (mouse ou teclado), com
+  tabela paginada (primeiro os processos com data marcada, da mais próxima para a mais distante; com a coluna do
+  DS-160 e a orientação prevista no OBT) e **quadro** (kanban): arrastar um card muda a situação de verdade (mouse ou teclado), com
   atualização otimista; reabrir um concluído pede o motivo.
 - **Detalhe em passaporte**: capa, página de dados (com o e-mail do cliente, que serve de login no consulado), pessoas com DS-160 (resultado editável) e carimbos do
   histórico; a rota de situações ao lado "carimba" a mudança.

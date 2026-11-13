@@ -44,6 +44,25 @@ describe("Tabela de processos: previsão da orientação (OBT)", () => {
     expect(linha.queryByLabelText("orientação fornecida")).not.toBeInTheDocument();
   });
 
+  it("orientação agendada mostra a data marcada (ela conta na ordem da tabela)", () => {
+    render(
+      <TabelaProcessos
+        linhas={[obt({ orientacao: "Agendada", orientacao_data: "2026-11-24" })]}
+        tipo="OBT"
+      />,
+    );
+    const linha = within(screen.getByRole("row", { name: /Joana Prado Lins/ }));
+    expect(linha.getByText("Agendada")).toBeInTheDocument();
+    expect(linha.getByText("24/11/2026")).toBeInTheDocument();
+  });
+
+  it("orientação que não está agendada não mostra data embaixo do selo", () => {
+    render(
+      <TabelaProcessos linhas={[obt({ orientacao: "Opt A", orientacao_data: "2026-11-24" })]} tipo="OBT" />,
+    );
+    expect(screen.queryByText("24/11/2026")).not.toBeInTheDocument();
+  });
+
   it("depois que a orientação foi dada, marca a previsão com ✓", () => {
     render(<TabelaProcessos linhas={[obt({ orientacao: "Fornecidas" })]} tipo="OBT" />);
     expect(screen.getByLabelText("orientação fornecida")).toBeInTheDocument();

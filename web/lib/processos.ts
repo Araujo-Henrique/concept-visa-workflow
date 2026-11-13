@@ -250,6 +250,8 @@ export function paramsDoPainel(f: Filtros, porPagina = POR_PAGINA) {
     ate: f.ate,
     despacho: f.despacho,
     orientacao: f.orientacao,
+    // os processos com data marcada primeiro, da mais próxima para a mais distante (vale para todas as páginas)
+    ordem: "agenda" as const,
     limit: porPagina,
     offset: (f.pagina - 1) * porPagina,
   };

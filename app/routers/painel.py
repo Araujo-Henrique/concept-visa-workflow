@@ -2,12 +2,13 @@ from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import Date, func, literal, null, select, union_all
+from sqlalchemy import Date, and_, case, func, literal, null, select, union_all
 
 from app.deps import Sessao
 from app.enums import Consulado, Orientacao, TipoProcesso
 from app.painel import painel
 from app.schemas.painel import AgendaItem, PainelOut, ResumoTipo, painel_adapter
+from app.tempo import hoje_em_sp
 
 router = APIRouter(prefix="/painel", tags=["Painel"])
 
@@ -21,6 +22,26 @@ COLUNA_DA_DATA = {evento: coluna for coluna, evento in DATAS_DA_AGENDA.items()}
 COLUNA_DA_DATA["previsao_orientacao"] = "previsao_orientacao"
 
 
+def proxima_data(hoje: date):
+    """A data marcada mais próxima de hoje em diante (inclusive hoje); nula se não há nenhuma.
+
+    Conta o que está AGENDADO: CASV, entrevista, orientação (só se está 'Agendada', com a data marcada), prazo do
+    despacho (só se ainda não foi despachado), PF e prazo da PF. Não conta a previsão da orientação (CASV - 14): ela
+    é só uma conta, não um compromisso marcado. Datas passadas não contam: já aconteceram. Processo "Concluido"
+    também não sobe pela data: o que ele tinha a fazer já foi feito.
+    O `least` do PostgreSQL ignora os nulos e só devolve nulo se todos forem nulos."""
+    candidatas = [
+        painel.c.data_casv,
+        painel.c.data_entrevista,
+        case((painel.c.orientacao == Orientacao.AGENDADA.value, painel.c.orientacao_data), else_=None),
+        case((painel.c.despachado_em.is_(None), painel.c.data_despacho), else_=None),
+        painel.c.data_pf,
+        painel.c.prazo_pf,
+    ]
+    pendente = painel.c.situacao != "Concluido"
+    return func.least(*[case((and_(c >= hoje, pendente), c), else_=None) for c in candidatas])
+
+
 @router.get("", response_model=list[PainelOut])
 def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None, situacao: str | None = None,
            consulado: Consulado | None = None, cliente: str | None = None,
@@ -31,10 +52,15 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
            de: date | None = None, ate: date | None = None,
            despacho: Literal["pendente", "feito"] | None = None,  # REN: falta despachar / já despachado
            orientacao: Orientacao | None = None,  # OBT: em que ponto está a orientação
+           ordem: Literal["agenda", "recentes"] = "recentes",
            limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     """Visão geral dos processos, uma linha por processo (a view vw_painel_processos).
     O cabeçalho `X-Total-Count` traz o total com os mesmos filtros, para a tela paginar.
-    Período: `data` diz qual data olhar (casv, entrevista...) e `de`/`ate` os limites (um deles basta)."""
+    Período: `data` diz qual data olhar (casv, entrevista...) e `de`/`ate` os limites (um deles basta).
+
+    Ordem: `recentes` (padrão da API) traz os processos mais novos primeiro; `agenda` (a que a tela de processos
+    usa) põe primeiro os que têm data marcada, da mais próxima para a mais distante (hoje em Brasília), e depois
+    os demais, dos mais novos para os mais antigos. A ordem vale para todas as páginas, não só para a primeira."""
     filtros = []
     if (de or ate) and data is None:
         raise HTTPException(status_code=422, detail="Informe qual data o período filtra (parâmetro `data`)")
@@ -69,7 +95,11 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
 
     total = sessao.scalar(select(func.count()).select_from(painel).where(*filtros))
     response.headers["X-Total-Count"] = str(total)
-    consulta = select(painel).where(*filtros).order_by(painel.c.processo_id.desc()).limit(limit).offset(offset)
+    if ordem == "agenda":
+        criterio = (proxima_data(hoje_em_sp()).asc().nulls_last(), painel.c.processo_id.desc())
+    else:
+        criterio = (painel.c.processo_id.desc(),)
+    consulta = select(painel).where(*filtros).order_by(*criterio).limit(limit).offset(offset)
     # o discriminador `tipo` escolhe o schema de cada linha e descarta as colunas que não pertencem ao tipo
     return [painel_adapter.validate_python(dict(linha._mapping)) for linha in sessao.execute(consulta)]
 
