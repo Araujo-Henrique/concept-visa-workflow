@@ -1,5 +1,7 @@
 import {
+  apoioDoDs160,
   dadosDaOrientacao,
+  dadosDoStatusDs160,
   dataEHora,
   datasPrincipais,
   formatarData,
@@ -11,6 +13,7 @@ import {
   ORIENTACOES,
   paramsDoPainel,
   rotuloResultado,
+  STATUS_DS160,
   tomDaSituacao,
   tomDoResultado,
   urlDosFiltros,
@@ -183,5 +186,30 @@ describe("passaporte", () => {
   it("carimbo tem sempre a mesma inclinação, entre -7° e 7°", () => {
     expect(inclinacaoDoCarimbo(42)).toBe(inclinacaoDoCarimbo(42));
     for (let id = 1; id < 200; id++) expect(Math.abs(inclinacaoDoCarimbo(id))).toBeLessThanOrEqual(7);
+  });
+});
+
+describe("DS-160 no painel", () => {
+  it("status na ordem de avanço da API, cada um com a sua cor", () => {
+    expect(STATUS_DS160.map((s) => s.valor)).toEqual([
+      "Pendente",
+      "Parcial",
+      "Aberto",
+      "Preenchido",
+      "Revisado",
+      "Fechado",
+    ]);
+    expect(new Set(STATUS_DS160.map((s) => s.classes)).size).toBe(STATUS_DS160.length);
+    expect(dadosDoStatusDs160("Fechado")?.classes).toMatch(/sucesso/);
+    expect(dadosDoStatusDs160("Inventado")).toBeNull();
+    expect(dadosDoStatusDs160(null)).toBeNull();
+  });
+
+  it("linha de apoio: quantos fecharam e quantas pessoas ficaram sem DS-160", () => {
+    expect(apoioDoDs160({ formularios: 1, pessoas: 1, fechados: 0 })).toBeNull();
+    expect(apoioDoDs160({ formularios: 3, pessoas: 3, fechados: 2 })).toBe("2/3 fechados");
+    expect(apoioDoDs160({ formularios: 1, pessoas: 3, fechados: 1 })).toBe("2 sem DS-160");
+    expect(apoioDoDs160({ formularios: 2, pessoas: 4, fechados: 0 })).toBe("0/2 fechados · 2 sem DS-160");
+    expect(apoioDoDs160({ formularios: 0, pessoas: 3, fechados: 0 })).toBeNull(); // sem nenhum: o selo mostra "—"
   });
 });

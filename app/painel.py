@@ -16,4 +16,5 @@ painel = Table(
     Column("codigo_rastreio", String), Column("atualizado_em", DateTime(timezone=True)),
     Column("orientacao", String), Column("orientacao_data", Date), Column("orientacao_por", String),
     Column("despachado_em", Date), Column("previsao_orientacao", Date),
+    Column("ds160_status", String), Column("ds160_fechados", Integer),
 )

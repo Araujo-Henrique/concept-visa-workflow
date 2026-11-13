@@ -33,6 +33,8 @@ class PainelOBT(PainelBase):
     orientacao_data: date | None
     orientacao_por: str | None  # vazio quando ninguém foi indicado (comum no histórico antigo)
     previsao_orientacao: date | None  # CASV - 14 dias; só previsão, não muda o status da orientação
+    ds160_status: str | None  # o status MENOS avançado entre os DS-160 do processo; nulo se não há nenhum
+    ds160_fechados: int  # quantos DS-160 já estão Fechado (com n_formularios: "2 de 3")
 
 
 class PainelREN(PainelBase):
@@ -42,6 +44,8 @@ class PainelREN(PainelBase):
     data_despacho: date | None  # prazo (CASV - 7)
     despachado_em: date | None  # quando foi despachado; vazio = falta despachar
     codigo_rastreio: str | None
+    ds160_status: str | None  # o status MENOS avançado entre os DS-160 do processo; nulo se não há nenhum
+    ds160_fechados: int
 
 
 class PainelPASS(PainelBase):

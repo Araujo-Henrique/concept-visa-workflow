@@ -1,7 +1,13 @@
 import { Check, Users } from "lucide-react";
 import Link from "next/link";
 
-import { SeloConsulado, SeloOrientacao, SeloResultado, SeloSituacao } from "@/components/processos/selos";
+import {
+  SeloConsulado,
+  SeloDs160,
+  SeloOrientacao,
+  SeloResultado,
+  SeloSituacao,
+} from "@/components/processos/selos";
 import {
   datasPrincipais,
   formatarData,
@@ -15,17 +21,19 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
   if (linhas.length === 0) return <SemResultado />;
   const comConsulado = tipo !== "PASS";
   const comOrientacao = tipo === "OBT";
+  const comDs160 = tipo !== "PASS"; // passaporte não tem DS-160
   const rotulosDatas = datasPrincipais(linhas[0]).map((d) => d.rotulo);
 
   return (
     <div className="overflow-x-auto rounded-2xl border bg-card">
-      <table className="w-full min-w-[860px] text-sm">
+      <table className="w-full min-w-[980px] text-sm">
         <thead>
           <tr className="border-b text-left text-xs tracking-wide text-muted-foreground uppercase">
             <th className="px-4 py-3 font-medium">Nº</th>
             <th className="px-4 py-3 font-medium">Cliente</th>
             <th className="px-4 py-3 font-medium">Situação</th>
             {comOrientacao && <th className="px-4 py-3 font-medium">Orientação</th>}
+            {comDs160 && <th className="px-4 py-3 font-medium">DS-160</th>}
             {comConsulado && <th className="px-4 py-3 font-medium">Consulado</th>}
             {rotulosDatas.map((r) => (
               <th key={r} className="px-4 py-3 font-medium">
@@ -65,6 +73,18 @@ export function TabelaProcessos({ linhas, tipo }: { linhas: LinhaPainel[]; tipo:
               {comOrientacao && (
                 <td className="px-4 py-3">
                   <SeloOrientacao orientacao={l.tipo === "OBT" ? l.orientacao : null} />
+                </td>
+              )}
+              {comDs160 && (
+                <td className="px-4 py-3">
+                  {l.tipo !== "PASS" && (
+                    <SeloDs160
+                      status={l.ds160_status}
+                      fechados={l.ds160_fechados}
+                      formularios={l.n_formularios}
+                      pessoas={l.n_solicitantes}
+                    />
+                  )}
                 </td>
               )}
               {comConsulado && (

@@ -4,7 +4,9 @@ import { ESTADOS_DO_DESPACHO, type EstadoDespacho } from "@/lib/agenda";
 import { rotuloSituacao } from "@/lib/formatos";
 import {
   CLASSES_DO_TOM,
+  apoioDoDs160,
   dadosDaOrientacao,
+  dadosDoStatusDs160,
   formatarData,
   rotuloResultado,
   tomDaSituacao,
@@ -62,6 +64,43 @@ export function SeloDespacho({
       {rotulo}
       {estado === "feito" && despachadoEm ? ` em ${formatarData(despachadoEm)}` : null}
     </span>
+  );
+}
+
+/**
+ * DS-160 do processo, para ver de relance: o status MENOS avançado do grupo (o gargalo) e, se há mais de um
+ * formulário, quantos já estão fechados. Sem nenhum formulário cadastrado, travessão.
+ */
+export function SeloDs160({
+  status,
+  fechados,
+  formularios,
+  pessoas,
+}: {
+  status: string | null;
+  fechados: number;
+  formularios: number;
+  pessoas: number;
+}) {
+  const dados = dadosDoStatusDs160(status);
+  if (!dados)
+    return (
+      <span className="text-muted-foreground" title="Nenhum DS-160 cadastrado">
+        —
+      </span>
+    );
+  const apoio = apoioDoDs160({ formularios, pessoas, fechados });
+  return (
+    <div>
+      <span
+        className={cn(BASE, dados.classes)}
+        title={formularios > 1 ? `Status menos avançado entre os ${formularios} DS-160` : "Status do DS-160"}
+      >
+        <span className="size-1.5 rounded-full bg-current" aria-hidden />
+        {dados.valor}
+      </span>
+      {apoio && <span className="mt-0.5 block text-[11px] text-muted-foreground">{apoio}</span>}
+    </div>
   );
 }
 

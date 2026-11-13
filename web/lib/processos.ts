@@ -108,6 +108,34 @@ export const ORIENTACOES = [
 
 export type Orientacao = (typeof ORIENTACOES)[number]["valor"];
 
+/**
+ * Status do DS-160 na ORDEM DE AVANÇO (a mesma de app.enums.StatusDS: é com ela que a API escolhe o status
+ * "menos avançado" do processo). O nome sempre aparece no selo; a cor só ajuda a achar.
+ */
+export const STATUS_DS160 = [
+  { valor: "Pendente", classes: "bg-muted text-muted-foreground" },
+  { valor: "Parcial", classes: "bg-alerta-suave text-alerta" },
+  { valor: "Aberto", classes: "bg-ceu-suave text-ceu" },
+  { valor: "Preenchido", classes: "bg-lilas-suave text-lilas" },
+  { valor: "Revisado", classes: "bg-marca-suave text-accent-foreground" },
+  { valor: "Fechado", classes: "bg-sucesso-suave text-sucesso" },
+] as const;
+
+export function dadosDoStatusDs160(valor: string | null | undefined) {
+  return STATUS_DS160.find((s) => s.valor === valor) ?? null;
+}
+
+/**
+ * Linha de apoio do selo do DS-160 quando o processo tem mais de um formulário ou pessoas sem DS-160:
+ * "1/3 fechados · 1 sem DS-160". O selo mostra o menos avançado; isto mostra o quanto falta.
+ */
+export function apoioDoDs160(p: { formularios: number; pessoas: number; fechados: number }): string | null {
+  const partes: string[] = [];
+  if (p.formularios > 1) partes.push(`${p.fechados}/${p.formularios} fechados`);
+  if (p.formularios > 0 && p.pessoas > p.formularios) partes.push(`${p.pessoas - p.formularios} sem DS-160`);
+  return partes.length ? partes.join(" · ") : null;
+}
+
 export function dadosDaOrientacao(valor: string | null | undefined) {
   return ORIENTACOES.find((o) => o.valor === valor) ?? null;
 }

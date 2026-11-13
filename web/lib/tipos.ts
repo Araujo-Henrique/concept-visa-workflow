@@ -46,6 +46,9 @@ export type LinhaOBT = LinhaBase & {
   orientacao_por: string | null;
   /** CASV - 14 dias, calculada pelo banco. Só previsão: não muda o status da orientação */
   previsao_orientacao: string | null;
+  /** o status MENOS avançado entre os DS-160 do processo (nulo se não há nenhum) */
+  ds160_status: string | null;
+  ds160_fechados: number;
 };
 export type LinhaREN = LinhaBase & {
   tipo: "REN";
@@ -55,6 +58,8 @@ export type LinhaREN = LinhaBase & {
   /** quando foi despachado de verdade; vazio = ainda falta despachar */
   despachado_em: string | null;
   codigo_rastreio: string | null;
+  ds160_status: string | null;
+  ds160_fechados: number;
 };
 export type LinhaPASS = LinhaBase & { tipo: "PASS"; data_pf: string | null; prazo_pf: string | null };
 export type LinhaPainel = LinhaOBT | LinhaREN | LinhaPASS;
