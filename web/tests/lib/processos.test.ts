@@ -1,5 +1,6 @@
 import {
   apoioDoDs160,
+  ds160Valido,
   dadosDaOrientacao,
   dadosDoStatusDs160,
   dataEHora,
@@ -245,5 +246,27 @@ describe("previsão da orientação atrasada", () => {
   it("sem previsão (sem CASV) ou com o processo concluído não alerta", () => {
     expect(previsaoAtrasada({ ...base, previsao_orientacao: null }, HOJE)).toBe(false);
     expect(previsaoAtrasada({ ...base, situacao: "Concluido" }, HOJE)).toBe(false);
+  });
+});
+
+describe("filtro do DS-160 na URL", () => {
+  it("aceita os status e 'sem', em OBT e REN, e descarta o resto", () => {
+    expect(lerFiltros({ tipo: "OBT", ds160: "Aberto" }).ds160).toBe("Aberto");
+    expect(lerFiltros({ tipo: "REN", ds160: "Fechado" }).ds160).toBe("Fechado");
+    expect(lerFiltros({ tipo: "OBT", ds160: "sem" }).ds160).toBe("sem");
+    expect(lerFiltros({ tipo: "OBT", ds160: "Inventado" }).ds160).toBeUndefined();
+    expect(lerFiltros({ tipo: "OBT", ds160: "aberto" }).ds160).toBeUndefined(); // exatamente como a API espera
+    expect(lerFiltros({ tipo: "PASS", ds160: "Aberto" }).ds160).toBeUndefined(); // passaporte não tem DS-160
+    expect(ds160Valido("Revisado")).toBe("Revisado");
+    expect(ds160Valido(undefined)).toBeUndefined();
+  });
+
+  it("vai para a API, conta como filtro ligado e volta pela URL", () => {
+    const f = lerFiltros({ tipo: "OBT", ds160: "Preenchido" });
+    expect(paramsDoPainel(f)).toMatchObject({ ds160: "Preenchido" });
+    expect(haFiltros(f)).toBe(true);
+    expect(urlDosFiltros(f)).toBe("/processos?ds160=Preenchido");
+    expect(lerFiltros({ tipo: "OBT", ds160: "sem" }).ds160).toBe("sem");
+    expect(paramsDoPainel(lerFiltros({ tipo: "OBT" })).ds160).toBeUndefined();
   });
 });

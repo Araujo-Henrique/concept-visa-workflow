@@ -121,6 +121,14 @@ export const STATUS_DS160 = [
   { valor: "Fechado", classes: "bg-sucesso-suave text-sucesso" },
 ] as const;
 
+/** Valor do filtro para processos sem nenhum DS-160 cadastrado. */
+export const SEM_DS160 = "sem";
+
+/** Valores aceitos no filtro do DS-160: os status (o menos avançado do processo) e "sem". */
+export function ds160Valido(valor: string | undefined): string | undefined {
+  return valor === SEM_DS160 || STATUS_DS160.some((s) => s.valor === valor) ? valor : undefined;
+}
+
 export function dadosDoStatusDs160(valor: string | null | undefined) {
   return STATUS_DS160.find((s) => s.valor === valor) ?? null;
 }
@@ -225,6 +233,8 @@ export type Filtros = {
   despacho?: "pendente" | "feito";
   /** só OBT: em que ponto está a orientação */
   orientacao?: Orientacao;
+  /** OBT e REN: o status do DS-160 que a coluna mostra (o menos avançado do processo) ou "sem" */
+  ds160?: string;
   pagina: number;
 };
 
@@ -254,6 +264,7 @@ export function lerFiltros(busca: Busca): Filtros {
     ate: dataValida && ate && DATA_ISO.test(ate) ? ate : undefined,
     despacho: tipo === "REN" && (despacho === "pendente" || despacho === "feito") ? despacho : undefined,
     orientacao: tipo === "OBT" ? orientacao : undefined,
+    ds160: tipo === "PASS" ? undefined : ds160Valido(um(busca.ds160)),
     pagina: Number.isInteger(pagina) && pagina > 0 ? pagina : 1,
   };
 }
@@ -271,6 +282,7 @@ export function paramsDoPainel(f: Filtros, porPagina = POR_PAGINA) {
     ate: f.ate,
     despacho: f.despacho,
     orientacao: f.orientacao,
+    ds160: f.ds160,
     // os processos com data marcada primeiro, da mais próxima para a mais distante (vale para todas as páginas)
     ordem: "agenda" as const,
     limit: porPagina,
@@ -292,7 +304,15 @@ export function urlDosFiltros(f: Partial<Filtros>): string {
 
 export function haFiltros(f: Filtros): boolean {
   return Boolean(
-    f.situacao || f.consulado || f.resultado || f.cliente || f.de || f.ate || f.despacho || f.orientacao,
+    f.situacao ||
+    f.consulado ||
+    f.resultado ||
+    f.cliente ||
+    f.de ||
+    f.ate ||
+    f.despacho ||
+    f.orientacao ||
+    f.ds160,
   );
 }
 

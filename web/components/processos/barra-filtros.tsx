@@ -13,6 +13,8 @@ import {
   haFiltros,
   ORIENTACOES,
   rotuloResultado,
+  SEM_DS160,
+  STATUS_DS160,
   urlDosFiltros,
   type DataFiltravel,
   type Filtros,
@@ -147,6 +149,17 @@ export function BarraFiltros({ filtros, situacoes, consulados, totais }: Props) 
               ["feito", "Despachado"],
             ]}
             aoMudar={(despacho) => aplicar({ despacho: despacho as Filtros["despacho"] })}
+          />
+        )}
+        {filtros.tipo !== "PASS" && (
+          <Filtro
+            rotulo="DS-160"
+            valor={filtros.ds160}
+            opcoes={[
+              ...STATUS_DS160.map((s) => [s.valor, s.valor] as [string, string]),
+              [SEM_DS160, "Sem DS-160"],
+            ]}
+            aoMudar={(ds160) => aplicar({ ds160 })}
           />
         )}
         <Filtro

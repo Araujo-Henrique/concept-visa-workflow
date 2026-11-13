@@ -103,3 +103,46 @@ def test_o_painel_nao_duplica_processos_com_varias_pessoas_e_formularios(client)
     pid = com_forms(client, "Aberto", "Fechado", "Revisado", pessoas=3)
     achadas = client.get("/painel", params={"processo_id": pid}).json()
     assert len(achadas) == 1 and achadas[0]["n_solicitantes"] == 3 and achadas[0]["n_formularios"] == 3
+
+
+# ---------------------------------------------------------------- filtro por status do DS-160
+
+def ids(client, **params):
+    return sorted(l["processo_id"] for l in client.get("/painel", params={"limit": 200, **params}).json())
+
+
+def test_filtra_pelo_status_que_a_coluna_mostra(client):
+    pendente = com_forms(client, "Pendente")
+    aberto = com_forms(client, "Aberto")
+    misto = com_forms(client, "Fechado", "Aberto", pessoas=2)       # a coluna mostra "Aberto" (o menos avançado)
+    fechado = com_forms(client, "Fechado", "Fechado", pessoas=2)
+    assert ids(client, ds160="Aberto") == sorted([aberto, misto])
+    assert ids(client, ds160="Fechado") == [fechado]
+    assert ids(client, ds160="Pendente") == [pendente]
+    assert ids(client, ds160="Revisado") == []
+
+
+@pytest.mark.parametrize("status", ORDEM)
+def test_cada_status_do_enum_pode_ser_filtrado(client, status):
+    pid = com_forms(client, status)
+    com_forms(client, "Fechado" if status != "Fechado" else "Pendente")
+    assert ids(client, ds160=status) == [pid]
+
+
+def test_sem_pega_quem_nao_tem_nenhum_formulario(client):
+    sem = com_forms(client)
+    com_forms(client, "Aberto")
+    assert ids(client, ds160="sem", tipo="OBT") == [sem]
+
+
+def test_filtro_do_ds160_combina_com_os_outros_e_o_total_acompanha(client):
+    obt_aberto = com_forms(client, "Aberto")
+    com_forms(client, "Aberto", tipo="ren")
+    resposta = client.get("/painel", params={"ds160": "Aberto", "tipo": "OBT"})
+    assert [l["processo_id"] for l in resposta.json()] == [obt_aberto]
+    assert resposta.headers["X-Total-Count"] == "1"
+
+
+def test_ds160_invalido_da_422_e_diz_os_valores(client):
+    resposta = client.get("/painel", params={"ds160": "Inventado"})
+    assert resposta.status_code == 422 and "Fechado" in resposta.json()["detail"] and "sem" in resposta.json()["detail"]

@@ -5,13 +5,14 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from sqlalchemy import Date, and_, case, func, literal, null, select, union_all
 
 from app.deps import Sessao
-from app.enums import Consulado, Orientacao, TipoProcesso
+from app.enums import Consulado, Orientacao, StatusDS, TipoProcesso
 from app.painel import painel
 from app.schemas.painel import AgendaItem, PainelOut, ResumoTipo, painel_adapter
 from app.tempo import hoje_em_sp
 
 router = APIRouter(prefix="/painel", tags=["Painel"])
 
+SEM_DS160 = "sem"  # valor do filtro `ds160` para processos sem nenhum formulário cadastrado
 MAX_DIAS_AGENDA = 92  # um trimestre: a agenda é uma janela, não um relatório do histórico inteiro
 
 # coluna da view -> nome do evento na agenda
@@ -52,6 +53,7 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
            de: date | None = None, ate: date | None = None,
            despacho: Literal["pendente", "feito"] | None = None,  # REN: falta despachar / já despachado
            orientacao: Orientacao | None = None,  # OBT: em que ponto está a orientação
+           ds160: str | None = None,  # status do DS-160 (o menos avançado do processo) ou "sem" (nenhum cadastrado)
            ordem: Literal["agenda", "recentes"] = "recentes",
            limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     """Visão geral dos processos, uma linha por processo (a view vw_painel_processos).
@@ -92,6 +94,15 @@ def listar(sessao: Sessao, response: Response, tipo: TipoProcesso | None = None,
         filtros.append(painel.c.despachado_em.is_not(None))
     if orientacao is not None:
         filtros.append(painel.c.orientacao == orientacao.value)
+    if ds160 is not None:
+        # o mesmo valor que a coluna mostra: o status MENOS avançado entre os DS-160 do processo
+        if ds160 == SEM_DS160:
+            filtros.append(painel.c.ds160_status.is_(None))
+        elif ds160 in {s.value for s in StatusDS}:
+            filtros.append(painel.c.ds160_status == ds160)
+        else:
+            validos = ", ".join([s.value for s in StatusDS] + [SEM_DS160])
+            raise HTTPException(status_code=422, detail=f"DS-160 inválido. Use: {validos}")
 
     total = sessao.scalar(select(func.count()).select_from(painel).where(*filtros))
     response.headers["X-Total-Count"] = str(total)
