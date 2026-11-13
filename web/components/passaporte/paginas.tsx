@@ -25,11 +25,12 @@ export const PAPEL =
 
 export function Cabecalho({ titulo, numero, acao }: { titulo: string; numero: number; acao?: ReactNode }) {
   return (
-    <header className="mb-6 flex items-center justify-between gap-3 border-b border-dashed pb-3">
-      <span className="font-heading text-[10px] font-bold tracking-[0.3em] text-marca-forte uppercase">
+    // flex-wrap: no celular o título ocupa a linha e o botão/número descem (antes o botão passava da borda do cartão)
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-dashed pb-3">
+      <span className="min-w-0 font-heading text-[10px] font-bold tracking-[0.3em] text-marca-forte uppercase">
         Concept Vistos · {titulo}
       </span>
-      <span className="flex items-center gap-3">
+      <span className="ml-auto flex items-center gap-3">
         {acao}
         <span className="font-heading text-xs font-bold text-muted-foreground tabular-nums">{numero}</span>
       </span>
@@ -49,7 +50,9 @@ export function Capa({ linha }: { linha: LinhaPainel }) {
       <p className="relative font-heading text-xs font-bold tracking-[0.4em] text-marca">CONCEPT VISTOS</p>
       <div className="relative">
         <Simbolo variante="claro" className="mx-auto h-28 drop-shadow-[0_0_24px_rgba(29,157,157,0.45)]" />
-        <p className="mt-8 font-heading text-3xl font-extrabold tracking-[0.25em]">PASSAPORTE</p>
+        <p className="mt-8 font-heading text-2xl font-extrabold tracking-[0.2em] sm:text-3xl sm:tracking-[0.25em]">
+          PASSAPORTE
+        </p>
         <p className="mt-1 text-xs tracking-[0.3em] text-papel/60">DO PROCESSO</p>
       </div>
       <div className="relative space-y-1">
@@ -86,10 +89,13 @@ function camposDoTipo(linha: LinhaPainel, d: ProcessoDetalhe, hoje?: string): Ca
           rotulo: "Orientação prevista",
           valor:
             hoje && previsaoAtrasada(linha as LinhaOBT, hoje) ? (
-              <span className="inline-flex items-center gap-1.5 font-semibold text-alerta">
-                <TriangleAlert className="size-4" aria-hidden />
-                {data(d.previsao_orientacao)}
-                <span className="text-xs font-medium">atrasada: ainda sem agendar</span>
+              <span className="block font-semibold text-alerta">
+                <span className="inline-flex items-center gap-1.5">
+                  <TriangleAlert className="size-4" aria-hidden />
+                  {data(d.previsao_orientacao)}
+                </span>
+                {/* embaixo da data: ao lado ela passava da borda em telas estreitas */}
+                <span className="block text-xs font-medium">atrasada: ainda sem agendar</span>
               </span>
             ) : (
               data(d.previsao_orientacao)

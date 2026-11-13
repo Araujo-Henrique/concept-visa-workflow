@@ -169,11 +169,13 @@ export function BarraFiltros({ filtros, situacoes, consulados, totais }: Props) 
           aoMudar={(resultado) => aplicar({ resultado })}
         />
 
-        <fieldset className="flex items-end gap-2">
+        {/* no celular o período ocupa a linha (data de/até lado a lado); no computador, tudo numa linha só */}
+        <fieldset className="flex w-full flex-wrap items-end gap-2 sm:w-auto sm:flex-nowrap">
           <legend className="sr-only">Período</legend>
           <Filtro
             rotulo="Período de"
             valor={dataEscolhida}
+            larguraTotal
             semTodos
             opcoes={datas.map((d) => [d, DATAS_FILTRAVEIS[d]])}
             aoMudar={(data) => aplicar({ data: data as DataFiltravel })}
@@ -209,18 +211,24 @@ function Filtro({
   opcoes,
   aoMudar,
   semTodos = false,
+  larguraTotal = false,
 }: {
   rotulo: string;
   valor: string | undefined;
   opcoes: [string, string][];
   aoMudar: (valor: string | undefined) => void;
   semTodos?: boolean;
+  /** no celular ocupa a linha inteira */
+  larguraTotal?: boolean;
 }) {
   return (
-    <div className="space-y-1">
+    <div className={cn("space-y-1", larguraTotal && "w-full sm:w-auto")}>
       <span className="block text-xs font-medium text-muted-foreground">{rotulo}</span>
       <Select value={valor ?? TODOS} onValueChange={(v) => aoMudar(v === TODOS ? undefined : v)}>
-        <SelectTrigger className="h-10 min-w-36" aria-label={rotulo}>
+        <SelectTrigger
+          className={cn("h-10 min-w-36", larguraTotal && "w-full sm:w-auto")}
+          aria-label={rotulo}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -246,13 +254,13 @@ function CampoData({
   aoMudar: (v: string | undefined) => void;
 }) {
   return (
-    <label className="space-y-1">
+    <label className="min-w-0 flex-1 space-y-1 sm:flex-none">
       <span className="block text-xs font-medium text-muted-foreground">{rotulo}</span>
       <Input
         type="date"
         value={valor ?? ""}
         onChange={(e) => aoMudar(e.target.value || undefined)}
-        className="h-10 w-40"
+        className="h-10 w-full sm:w-40"
       />
     </label>
   );

@@ -16,6 +16,8 @@ Interface web do **Concept Visa Workflow**: o time da Concept Vistos acompanha a
 - Proteções: a API limita tentativas de login (por IP e por conta) e requisições por IP; o front repassa o IP de
   quem acessa (`lib/ip-cliente.ts`, cabeçalho `X-Cliente-IP`) e mostra o tempo de espera quando a API responde 429.
   Toda página sai com cabeçalhos de segurança (`next.config.ts`). Detalhes no README da raiz.
+- Funciona no celular (testado em 360 e 390 px): nenhuma tela passa da largura, a tabela de processos arrasta para o
+  lado com o dedo, e a busca é uma lupa na barra de cima (um toque).
 - Menu por perfil (leitor, atendente, admin). Esconder um botão não protege nada: quem decide é a API (401/403).
 - Início com um "cartão de embarque" por tipo de processo (em andamento e situações abertas) e o **painel de
   embarque**: as datas marcadas dos próximos 7 dias, no estilo do letreiro de partidas do aeroporto.

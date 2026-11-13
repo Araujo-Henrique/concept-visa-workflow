@@ -54,7 +54,11 @@ export function Passaporte({
   return (
     <div className="flex flex-col gap-3 lg:flex-row-reverse lg:items-start lg:gap-0">
       {/* abas como as marcações de índice na lateral de um caderno */}
-      <div role="tablist" aria-label="Páginas do passaporte" className="flex gap-1 lg:mt-10 lg:flex-col">
+      <div
+        role="tablist"
+        aria-label="Páginas do passaporte"
+        className="grid grid-cols-4 gap-1 sm:flex lg:mt-10 lg:flex-col"
+      >
         {PAGINAS.map(({ id, rotulo, icone: Icone }) => {
           const atual = id === pagina;
           return (
@@ -67,7 +71,8 @@ export function Passaporte({
               aria-controls="pagina-passaporte"
               onClick={() => !atual && aoMudar(id)}
               className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all lg:rounded-l-none lg:rounded-r-xl lg:py-3",
+                // no celular: ícone em cima do nome e as 4 abas dividem a largura (antes passavam da tela)
+                "flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[11px] font-medium transition-all sm:flex-row sm:gap-2 sm:px-3 sm:text-sm lg:rounded-l-none lg:rounded-r-xl lg:py-3",
                 atual
                   ? "bg-tinta text-papel lg:translate-x-1"
                   : "bg-muted text-muted-foreground hover:bg-marca-suave hover:text-foreground",
@@ -84,7 +89,7 @@ export function Passaporte({
         role="tabpanel"
         aria-labelledby={`aba-${pagina}`}
         // isolate + overflow: a página (e a capa) vira dentro do livro, sem passar por cima do menu lateral
-        className="relative isolate grid flex-1 overflow-hidden rounded-2xl shadow-[0_18px_40px_-20px_rgba(5,5,16,0.35)] [perspective:1800px] [&>*]:[grid-area:1/1]"
+        className="relative isolate grid flex-1 grid-cols-1 overflow-hidden rounded-2xl shadow-[0_18px_40px_-20px_rgba(5,5,16,0.35)] [perspective:1800px] [&>*]:[grid-area:1/1]"
       >
         <AnimatePresence initial={false} custom={direcao}>
           <motion.section

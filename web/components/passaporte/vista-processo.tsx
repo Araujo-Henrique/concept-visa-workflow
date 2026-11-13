@@ -42,7 +42,7 @@ export function VistaProcesso({
   const visitadas = new Set(eventos.map((e) => e.situacao_nova).filter((s): s is string => Boolean(s)));
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
       <Passaporte
         linha={linha}
         pagina={pagina}

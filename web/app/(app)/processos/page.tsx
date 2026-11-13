@@ -95,6 +95,11 @@ async function Tabela({ filtros }: { filtros: Filtros }) {
     <>
       <p className="mb-2 text-xs text-muted-foreground">
         Ordem: primeiro as datas marcadas mais próximas; depois os demais, dos mais novos aos mais antigos.
+        {/* só em telas de toque: a tabela é larga e rola para o lado com o dedo */}
+        <span className="hidden font-medium [@media(pointer:coarse)]:inline">
+          {" "}
+          Arraste a tabela para o lado para ver todas as colunas.
+        </span>
       </p>
       <TabelaProcessos linhas={itens} tipo={filtros.tipo} />
       <Paginacao filtros={filtros} total={total ?? itens.length} />

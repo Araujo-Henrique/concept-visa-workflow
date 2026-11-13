@@ -18,7 +18,19 @@ import {
 import { cn } from "@/lib/utils";
 
 /** Ctrl+K (ou ⌘K) em qualquer tela: número do processo (#1234) ou nome do cliente. */
-export function BuscaGlobal({ className, atalho = true }: { className?: string; atalho?: boolean }) {
+export function BuscaGlobal({
+  className,
+  atalho = true,
+  variante = "lateral",
+  aoEscolher,
+}: {
+  className?: string;
+  atalho?: boolean;
+  /** "icone": só a lupa (barra de cima do celular); "lateral": o campo do menu */
+  variante?: "lateral" | "icone";
+  /** chamado ao abrir um resultado (o menu do celular se fecha para mostrar a página) */
+  aoEscolher?: () => void;
+}) {
   const router = useRouter();
   const [aberta, setAberta] = useState(false);
   const [termo, setTermo] = useState("");
@@ -48,23 +60,38 @@ export function BuscaGlobal({ className, atalho = true }: { className?: string; 
   const abrir = (id: number) => {
     setAberta(false);
     setTermo("");
+    aoEscolher?.();
     router.push(`/processos/${id}`);
   };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setAberta(true)}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground",
-          className,
-        )}
-      >
-        <Search className="size-4" />
-        <span className="flex-1 text-left">Buscar…</span>
-        <kbd className="rounded border border-sidebar-border px-1.5 font-mono text-[10px]">Ctrl K</kbd>
-      </button>
+      {variante === "icone" ? (
+        <button
+          type="button"
+          onClick={() => setAberta(true)}
+          aria-label="Buscar processo"
+          className={cn("grid size-10 place-items-center rounded-lg hover:bg-muted", className)}
+        >
+          <Search className="size-5" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAberta(true)}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground",
+            className,
+          )}
+        >
+          <Search className="size-4" />
+          <span className="flex-1 text-left">Buscar…</span>
+          {/* Ctrl K não existe no celular (a lateral fixa só aparece a partir de lg) */}
+          <kbd className="hidden rounded border border-sidebar-border px-1.5 font-mono text-[10px] lg:inline">
+            Ctrl K
+          </kbd>
+        </button>
+      )}
 
       <CommandDialog
         open={aberta}

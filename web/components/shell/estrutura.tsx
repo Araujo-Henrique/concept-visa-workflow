@@ -34,7 +34,7 @@ function Navegacao({ usuario, aoNavegar }: { usuario: Usuario; aoNavegar?: () =>
 
       <div className="px-3 pb-4">
         {/* só a instância da lateral escuta o Ctrl+K (a do menu do celular é só o botão) */}
-        <BuscaGlobal atalho={!aoNavegar} />
+        <BuscaGlobal atalho={!aoNavegar} aoEscolher={aoNavegar} />
       </div>
 
       <nav aria-label="Principal" className="flex-1 px-3">
@@ -117,7 +117,11 @@ export function Estrutura({ usuario, children }: { usuario: Usuario; children: R
             </SheetContent>
           </Sheet>
           <Simbolo className="h-7" />
-          <span className="font-heading text-sm font-extrabold tracking-wider">CONCEPT VISTOS</span>
+          <span className="min-w-0 truncate font-heading text-sm font-extrabold tracking-wider">
+            CONCEPT VISTOS
+          </span>
+          {/* a busca sempre à mão no celular, sem abrir o menu antes */}
+          <BuscaGlobal variante="icone" atalho={false} className="ml-auto shrink-0" />
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-8 lg:px-10 lg:py-10">{children}</main>
